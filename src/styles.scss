@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #0b0f1a;
+  --surface: #111827;
+  --card:    #141c2e;
+  --border:  rgba(255,255,255,0.06);
+  --accent:  #f43f5e;
+  --accent2: #fb923c;
+  --accent3: #38bdf8;
+  --green:   #34d399;
+  --purple:  #a78bfa;
+  --text:    #e2e8f0;
+  --muted:   #64748b;
+  --sidebar-w: 240px;
+  --topbar-h:  52px;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ── Responsive overflow fix ── */
+@media (max-width: 768px) {
+  html, body { overflow: auto; }
+}
+
+/* ── Scrollbar global ── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+/* ── Utilities ── */
+.mono { font-family: 'JetBrains Mono', monospace; }
