@@ -1,6 +1,8 @@
-import { Component, signal, computed, inject } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../../../auth/services/auth.service';
+import { CommonModule } from '@angular/common';
+import { Usuario, CreateUsuarioRequest, UpdateUsuarioRequest  } from '../../../shared/models/financeiro.models';
+import { UsuariosService } from '../../../shared/services/usuarios.service';
 
 type Role = 'admin' | 'gestor' | 'analista' | 'operador';
 
@@ -18,14 +20,6 @@ const PERFIS_MOCK: PerfilOpcao[] = [
   { id:'perfil_operador', nome:'Operador',            cor:'#fb923c' },
 ];
 
-const USUARIOS_MOCK: UsuarioForm[] = [
-  { id:'usr_001', username:'admin',     nome:'Administrador',         email:'admin@financeflow.com.br', telefone:'(11) 99999-0001', password:'', role:'admin',    perfil_id:'perfil_admin',    ativo:true  },
-  { id:'usr_002', username:'joao.silva',nome:'João Silva',            email:'joao@empresa.com.br',      telefone:'(11) 99888-1234', password:'', role:'gestor',   perfil_id:'perfil_gestor',   ativo:true  },
-  { id:'usr_003', username:'maria.f',   nome:'Maria Fernanda',        email:'maria@empresa.com.br',     telefone:'(31) 98877-5678', password:'', role:'analista', perfil_id:'perfil_analista', ativo:true  },
-  { id:'usr_004', username:'carlos.op', nome:'Carlos Operacional',    email:'carlos@empresa.com.br',    telefone:'(21) 97766-9012', password:'', role:'operador', perfil_id:'perfil_operador', ativo:false },
-  { id:'usr_005', username:'ana.g',     nome:'Ana Gestora',           email:'ana@empresa.com.br',       telefone:'(11) 96655-3456', password:'', role:'gestor',   perfil_id:'perfil_gestor',   ativo:true  },
-];
-
 const ROLE_INFO: Record<Role, { label: string; cor: string }> = {
   admin:    { label:'Admin',    cor:'#f43f5e' },
   gestor:   { label:'Gestor',   cor:'#34d399' },
@@ -33,11 +27,9 @@ const ROLE_INFO: Record<Role, { label: string; cor: string }> = {
   operador: { label:'Operador', cor:'#fb923c' },
 };
 
-function uuid() { return 'usr_' + Math.random().toString(36).slice(2, 10); }
-
 @Component({
   selector: 'app-admin-usuarios',
-  imports: [FormsModule],
+  imports: [FormsModule, CommonModule],
   template: `
     <div class="page">
       <!-- Header -->
@@ -58,6 +50,16 @@ function uuid() { return 'usr_' + Math.random().toString(36).slice(2, 10); }
           </div>
         }
       </div>
+
+      <!-- Loading -->
+      @if (carregando()) {
+        <div class="loading-message">Carregando usuários...</div>
+      }
+
+      <!-- Erro -->
+      @if (erroGeral()) {
+        <div class="alert-erro">⚠️ {{ erroGeral() }}</div>
+      }
 
       <!-- Filters -->
       <div class="card">
@@ -114,7 +116,7 @@ function uuid() { return 'usr_' + Math.random().toString(36).slice(2, 10); }
                     </div>
                     <span class="status-text" [class.ativo]="u.ativo">{{ u.ativo ? 'Ativo' : 'Inativo' }}</span>
                   </td>
-                  <td class="mono muted">{{ u.id === 'usr_001' ? 'Agora' : 'Há 2 dias' }}</td>
+                  <td class="mono muted">{{ u.ultimo_acesso }}</td>
                   <td>
                     <div class="act-row">
                       <button class="btn-icon" title="Editar" (click)="editarUsuario(u)">✏️</button>
@@ -227,7 +229,10 @@ function uuid() { return 'usr_' + Math.random().toString(36).slice(2, 10); }
           </div>
           <div class="modal-footer">
             <button class="btn-cancel" (click)="modalSenhaAberto.set(false)">Cancelar</button>
-            <button class="btn-save" (click)="confirmarResetSenha()">Confirmar</button>
+            <button class="btn-save" (click)="confirmarResetSenha()" [disabled]="salvando()">
+              @if (salvando()) { <span class="spin"></span> }
+              @else { Confirmar }
+            </button>
           </div>
         </div>
       </div>
@@ -251,6 +256,9 @@ function uuid() { return 'usr_' + Math.random().toString(36).slice(2, 10); }
     .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 22px;flex:1;min-width:140px}
     .stat-num{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;letter-spacing:-1px}
     .stat-label{font-size:12px;color:var(--muted);margin-top:4px}
+
+    .loading-message{background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.3);color:#38bdf8;padding:12px 16px;border-radius:8px;font-size:13px}
+    .alert-erro{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:#f43f5e;padding:12px 16px;border-radius:8px;font-size:13px}
 
     .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
     .card-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
@@ -328,14 +336,16 @@ function uuid() { return 'usr_' + Math.random().toString(36).slice(2, 10); }
     .toast-error{background:#450a0a;border:1px solid #f43f5e;color:#f43f5e}
   `],
 })
-export class AdminUsuariosComponent {
-  protected readonly auth = inject(AuthService);
+export class AdminUsuariosComponent implements OnInit {
+  protected readonly usuariosService = inject(UsuariosService);
 
   readonly ROLE_INFO = ROLE_INFO;
   readonly perfisDisponiveis = PERFIS_MOCK;
 
   // State
-  private readonly _usuarios = signal<UsuarioForm[]>(USUARIOS_MOCK);
+  private readonly _usuarios = signal<Usuario[]>([]);
+  readonly carregando = signal(false);
+  readonly erroGeral = signal('');
   readonly modalAberto     = signal(false);
   readonly modalSenhaAberto= signal(false);
   readonly editando        = signal(false);
@@ -344,7 +354,7 @@ export class AdminUsuariosComponent {
   readonly sucessoForm     = signal('');
   readonly toast           = signal('');
   readonly toastType       = signal<'success'|'error'>('success');
-  readonly usuarioSenha    = signal<UsuarioForm | null>(null);
+  readonly usuarioSenha    = signal<Usuario | null>(null);
   novaSenha = '';
   busca = ''; filtroRole = ''; filtroAtivo = '';
 
@@ -352,7 +362,7 @@ export class AdminUsuariosComponent {
 
   readonly usuariosFiltrados = computed(() => {
     const b = this.busca.toLowerCase(); const r = this.filtroRole; const a = this.filtroAtivo;
-    return this._usuarios().filter(u =>
+    return (this._usuarios() ?? []).filter(u =>
       (!b || u.nome.toLowerCase().includes(b) || u.email.toLowerCase().includes(b)) &&
       (!r || u.role === r) &&
       (a === '' || String(u.ativo) === a)
@@ -366,6 +376,27 @@ export class AdminUsuariosComponent {
     { label:'Administradores', num: this._usuarios().filter(u => u.role === 'admin').length, cor:'#fb923c' },
   ]);
 
+  ngOnInit() {
+    this.carregarUsuarios();
+  }
+
+  carregarUsuarios() {
+    this.carregando.set(true);
+    this.erroGeral.set('');
+    
+    this.usuariosService.getUsuarios().subscribe({
+      next: (response: any) => {
+        this._usuarios.set(response.usuarios || []);
+        this.carregando.set(false);
+      },
+      error: (err) => {
+        console.error('Erro ao carregar usuários:', err);
+        this.erroGeral.set('Erro ao carregar usuários. Tente novamente.');
+        this.carregando.set(false);
+      }
+    });
+  }
+
   abrirModal() {
     this.form = this.emptyForm();
     this.editando.set(false);
@@ -373,8 +404,18 @@ export class AdminUsuariosComponent {
     this.modalAberto.set(true);
   }
 
-  editarUsuario(u: UsuarioForm) {
-    this.form = { ...u, password: '' };
+  editarUsuario(u: Usuario) {
+    this.form = { 
+      id: u.id,
+      username: u.username,
+      nome: u.nome,
+      email: u.email,
+      telefone: u.telefone || '',
+      password: '',
+      role: u.role,
+      perfil_id: u.perfil_id,
+      ativo: u.ativo
+    };
     this.editando.set(true);
     this.erroForm.set(''); this.sucessoForm.set('');
     this.modalAberto.set(true);
@@ -397,29 +438,80 @@ export class AdminUsuariosComponent {
     }
 
     this.salvando.set(true);
+    this.erroForm.set('');
 
-    // Simula chamada API
-    setTimeout(() => {
-      if (this.editando()) {
-        this._usuarios.update(list => list.map(u => u.id === this.form.id ? { ...this.form } : u));
-        this.showToast('Usuário atualizado com sucesso!', 'success');
-      } else {
-        const novo = { ...this.form, id: uuid(), ativo: true };
-        this._usuarios.update(list => [novo, ...list]);
-        this.showToast('Usuário criado com sucesso!', 'success');
-      }
-      this.salvando.set(false);
-      this.fecharModal();
-    }, 800);
+    if (this.editando()) {
+      // Atualizar
+      const updateData: UpdateUsuarioRequest = {
+        nome: this.form.nome,
+        email: this.form.email,
+        telefone: this.form.telefone,
+        role: this.form.role,
+        perfil_id: this.form.perfil_id,
+        ativo: this.form.ativo
+      };
+
+      this.usuariosService.atualizarUsuario(this.form.id, updateData).subscribe({
+        next: (usuario) => {
+          this._usuarios.update(list => 
+            list.map(u => u.id === usuario.id ? usuario : u)
+          );
+          this.showToast('Usuário atualizado com sucesso!', 'success');
+          this.salvando.set(false);
+          this.fecharModal();
+        },
+        error: (err) => {
+          console.error('Erro:', err);
+          this.erroForm.set(err.error?.detail || 'Erro ao atualizar usuário');
+          this.salvando.set(false);
+        }
+      });
+    } else {
+      // Criar
+      const createData: CreateUsuarioRequest = {
+        username: this.form.username,
+        nome: this.form.nome,
+        email: this.form.email,
+        telefone: this.form.telefone,
+        password: this.form.password,
+        role: this.form.role,
+        perfil_id: this.form.perfil_id
+      };
+
+      this.usuariosService.criarUsuario(createData).subscribe({
+        next: (usuario) => {
+          this._usuarios.update(list => [usuario, ...list]);
+          this.showToast('Usuário criado com sucesso!', 'success');
+          this.salvando.set(false);
+          this.fecharModal();
+        },
+        error: (err) => {
+          console.error('Erro:', err);
+          this.erroForm.set(err.error?.detail || 'Erro ao criar usuário');
+          this.salvando.set(false);
+        }
+      });
+    }
   }
 
-  toggleAtivo(u: UsuarioForm) {
+  toggleAtivo(u: Usuario) {
     if (u.role === 'admin') return;
-    this._usuarios.update(list => list.map(x => x.id === u.id ? { ...x, ativo: !x.ativo } : x));
-    this.showToast(u.ativo ? 'Usuário desativado.' : 'Usuário ativado!', 'success');
+    
+    this.usuariosService.toggleAtivo(u.id, !u.ativo).subscribe({
+      next: (usuarioAtualizado) => {
+        this._usuarios.update(list => 
+          list.map(x => x.id === u.id ? usuarioAtualizado : x)
+        );
+        this.showToast(u.ativo ? 'Usuário desativado.' : 'Usuário ativado!', 'success');
+      },
+      error: (err) => {
+        console.error('Erro:', err);
+        this.showToast('Erro ao atualizar status do usuário', 'error');
+      }
+    });
   }
 
-  resetSenha(u: UsuarioForm) {
+  resetSenha(u: Usuario) {
     this.usuarioSenha.set(u);
     this.novaSenha = '';
     this.modalSenhaAberto.set(true);
@@ -430,8 +522,24 @@ export class AdminUsuariosComponent {
       this.showToast('Senha muito curta (mínimo 8 caracteres)', 'error');
       return;
     }
-    this.modalSenhaAberto.set(false);
-    this.showToast('Senha redefinida com sucesso!', 'success');
+
+    const usuario = this.usuarioSenha();
+    if (!usuario) return;
+
+    this.salvando.set(true);
+
+    this.usuariosService.resetarSenha(usuario.id, this.novaSenha).subscribe({
+      next: () => {
+        this.showToast('Senha redefinida com sucesso!', 'success');
+        this.modalSenhaAberto.set(false);
+        this.salvando.set(false);
+      },
+      error: (err) => {
+        console.error('Erro:', err);
+        this.showToast(err.error?.detail || 'Erro ao resetar senha', 'error');
+        this.salvando.set(false);
+      }
+    });
   }
 
   aplicarFiltro() { /* filtros são reativos via computed */ }
@@ -441,6 +549,7 @@ export class AdminUsuariosComponent {
   }
 
   initials(nome: string) { return nome.split(' ').map(x => x[0]).slice(0, 2).join('').toUpperCase(); }
+  
   avatarGrad(role: string) {
     const grads: Record<string, string> = {
       admin:'linear-gradient(135deg,#f43f5e,#fb923c)',
@@ -450,11 +559,30 @@ export class AdminUsuariosComponent {
     };
     return grads[role] ?? 'linear-gradient(135deg,#64748b,#475569)';
   }
+
   roleBg(role: string)     { return `rgba(${this.roleRgb(role)},.1)`; }
   roleBorder(role: string) { return `rgba(${this.roleRgb(role)},.25)`; }
+  
   private roleRgb(role: string) {
     const m: Record<string,string> = { admin:'244,63,94', gestor:'52,211,153', analista:'56,189,248', operador:'251,146,60' };
     return m[role] ?? '100,116,139';
+  }
+
+  formatarDataAcesso(data: string | undefined): string {
+    if (!data) return 'Nunca';
+    try {
+      const d = new Date(data);
+      const agora = new Date();
+      const diff = agora.getTime() - d.getTime();
+      const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
+      
+      if (dias === 0) return 'Hoje';
+      if (dias === 1) return 'Ontem';
+      if (dias < 7) return `Há ${dias} dias`;
+      return d.toLocaleDateString('pt-BR');
+    } catch {
+      return data;
+    }
   }
 
   private showToast(msg: string, type: 'success'|'error') {

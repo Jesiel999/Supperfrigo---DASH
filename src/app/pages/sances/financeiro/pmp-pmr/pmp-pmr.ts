@@ -1,9 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { PmpPmrService } from '../../shared/services/pmp-pmr.service';
-import { KpiCardComponent } from '../../shared/components/pmp-pmr/kpi-card/kpi-card';
-import { DataTablePmrComponent } from '../../shared/components/pmp-pmr/data-table-pmr/data-table';
-import { DataTablePmpComponent } from '../../shared/components/pmp-pmr/data-table-pmp/data-table';
+import { PmpPmrService } from '../../../../shared/services/pmp-pmr.service';
+import { KpiCardComponent } from '../../../../shared/components/pmp-pmr/kpi-card/kpi-card';
+import { DataTablePmrComponent } from '../../../../shared/components/pmp-pmr/data-table-pmr/data-table';
+import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/data-table-pmp/data-table';
 
 @Component({
   selector: 'app-pmp-pmr',

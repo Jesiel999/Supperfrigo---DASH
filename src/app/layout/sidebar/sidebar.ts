@@ -30,10 +30,7 @@ import { AuthService } from '../../auth/services/auth.service';
         <div class="nav-section">
           <p class="section-label">Administração</p>
           <a class="nav-item admin-item" routerLink="/admin/usuarios" routerLinkActive="active" (click)="fechar.emit()">
-            <span class="nav-icon">👥</span><span>Usuários</span>
-          </a>
-          <a class="nav-item admin-item" routerLink="/admin/permissoes" routerLinkActive="active" (click)="fechar.emit()">
-            <span class="nav-icon">🔐</span><span>Perfis & Permissões</span>
+            <span class="nav-icon">🔐</span><span>Configurações</span>
           </a>
         </div>
       }
@@ -112,7 +109,7 @@ export class SidebarComponent {
   };
 
   getRoleLabel(): string {
-    const role = this.usuario()?.perfil_nome;
+    const role = this.usuario()?.role;
     if (!role) return '';
     return this.roleLabels[role] ?? role;
   }

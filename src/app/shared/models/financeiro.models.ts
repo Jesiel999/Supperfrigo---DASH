@@ -5,6 +5,24 @@ export interface LoginPayload {
   tenant_id?: number;
 }
 
+export interface Permissao {
+  id: string;
+  recurso: string;
+  label: string;
+  categoria: string;
+  visualizar: boolean;
+  criar: boolean;
+  editar: boolean;
+  excluir: boolean;
+}
+
+
+export type AcaoPermissao =
+  | 'visualizar'
+  | 'criar'
+  | 'editar'
+  | 'excluir';
+  
 export interface TenantInfo {
   id:   number;
   nome: string;
@@ -20,8 +38,43 @@ export interface Perfil {
   id: string;
   nome: string;
   descricao: string;
-  permissoes: PermissaoRecurso[];
   cor: string;
+  total_usuarios: number;
+  permissoes: Permissao[];
+  ativo?: boolean;
+}
+
+export interface CreatePerfilRequest {
+  nome: string;
+  descricao: string;
+  cor: string;
+  permissoes: {
+    [recurso: string]: {
+      visualizar: boolean;
+      criar: boolean;
+      editar: boolean;
+      excluir: boolean;
+    }
+  }
+}
+
+export interface UpdatePerfilRequest {
+  nome: string;
+  descricao: string;
+  cor: string;
+  permissoes: {
+    [recurso: string]: {
+      visualizar: boolean;
+      criar: boolean;
+      editar: boolean;
+      excluir: boolean;
+    }
+  }
+}
+
+export interface PermissoesResponse {
+  total: number;
+  perfis: Perfil[];
 }
 
 export interface EmpresaAutorizada {
@@ -39,7 +92,6 @@ export interface AuthResponse {
 // { "dashboard_inadimplencia": ["visualizar", "editar"], ... }
 export type PermissoesMap = Record<string, string[]>;
 
-export type Permissao     = 'visualizar' | 'criar' | 'editar' | 'excluir';
 export type RecursoSistema =
   | 'dashboard_inadimplencia' | 'dashboard_dre'  | 'dashboard_pmp'
   | 'dashboard_aging'         | 'cobrancas'       | 'contas_receber'
@@ -51,23 +103,52 @@ export interface Usuario {
   username:     string;
   nome:         string;
   email:        string;
-  // Contexto do tenant atual
   tenant_id:    number;
   tenant_nome:  string;
   tenant_slug:  string;
-  perfil_id:    number;
-  perfil_nome:  string;
+  perfil_id:    string;
   perfil_cor:   string;
-  // Permissões no tenant atual
+  ativo:        boolean;
+  role:         'admin' | 'gestor' | 'analista' | 'operador';
+  telefone?:     string;
   permissoes:   PermissoesMap;
-  // Empresas autorizadas (vazio = todas)
   empresas:     EmpresaAutorizada[];
-  // Todos os tenants que o usuário acessa
   tenants:      TenantInfo[];
+  ultimo_acesso: Date;
+}
+
+
+export interface CreateUsuarioRequest {
+  username: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  password: string;
+  role: 'admin' | 'gestor' | 'analista' | 'operador';
+  perfil_id: string;
+}
+
+export interface UpdateUsuarioRequest {
+  nome: string;
+  email: string;
+  telefone: string;
+  role: 'admin' | 'gestor' | 'analista' | 'operador';
+  perfil_id: string;
+  ativo: boolean;
+}
+
+export interface UsuariosResponse {
+  total: number;
+  usuarios: Usuario[];
+}
+
+export interface ResetSenhaRequest {
+  usuario_id: string;
+  nova_senha: string;
 }
 
 // ─── Inadimplência 
-export type StatusInadimplencia = 'VENCIDO' | 'PAGO' | 'EM_ABERTO';
+export type StatusInadimplencia = 'VENCIDO' | 'PAGO' | 'EM ABERTO';
 export interface ClienteInadimplente {
   id: string;
   id_empresa: number;

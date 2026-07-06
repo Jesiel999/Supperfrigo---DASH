@@ -1,79 +1,11 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-
-interface Permissao { recurso: string; label: string; categoria: string; visualizar: boolean; criar: boolean; editar: boolean; excluir: boolean; }
-interface Perfil { id: string; nome: string; descricao: string; cor: string; total_usuarios: number; permissoes: Permissao[]; }
-
-const RECURSOS: { recurso: string; label: string; categoria: string }[] = [
-  { recurso:'dashboard_inadimplencia', label:'Dashboard Inadimplência', categoria:'Financeiro' },
-  { recurso:'dashboard_dre',           label:'DRE',                     categoria:'Financeiro' },
-  { recurso:'dashboard_pmp',           label:'PMP',                     categoria:'Financeiro' },
-  { recurso:'dashboard_aging',         label:'Aging Report',            categoria:'Financeiro' },
-  { recurso:'cobrancas',               label:'Cobranças',               categoria:'Financeiro' },
-  { recurso:'contas_receber',          label:'Contas a Receber',        categoria:'Financeiro' },
-  { recurso:'contas_pagar',            label:'Contas a Pagar',          categoria:'Financeiro' },
-  { recurso:'fluxo_caixa',             label:'Fluxo de Caixa',          categoria:'Financeiro' },
-  { recurso:'relatorios',              label:'Relatórios',              categoria:'Financeiro' },
-  { recurso:'veiculos',                label:'Veículos',                categoria:'Operações'  },
-  { recurso:'fretes',                  label:'Fretes',                  categoria:'Operações'  },
-  { recurso:'admin_usuarios',          label:'Gestão de Usuários',      categoria:'Admin'      },
-  { recurso:'admin_permissoes',        label:'Perfis & Permissões',     categoria:'Admin'      },
-];
-
-function buildPerms(acoes: ('visualizar'|'criar'|'editar'|'excluir')[]): Record<string, Permissao> {
-  const map: Record<string, Permissao> = {};
-  RECURSOS.forEach(r => {
-    map[r.recurso] = {
-      ...r,
-      visualizar: acoes.includes('visualizar'),
-      criar:      acoes.includes('criar'),
-      editar:     acoes.includes('editar'),
-      excluir:    acoes.includes('excluir'),
-    };
-  });
-  return map;
-}
-
-const PERFIS_MOCK: Perfil[] = [
-  {
-    id:'perfil_admin', nome:'Administrador', descricao:'Acesso total ao sistema', cor:'#f43f5e', total_usuarios:1,
-    permissoes: RECURSOS.map(r => ({ ...r, visualizar:true, criar:true, editar:true, excluir:true })),
-  },
-  {
-    id:'perfil_gestor', nome:'Gestor Financeiro', descricao:'Dashboards e cobranças, sem admin', cor:'#34d399', total_usuarios:2,
-    permissoes: RECURSOS.map(r => ({
-      ...r,
-      visualizar: !['admin_usuarios','admin_permissoes'].includes(r.recurso),
-      criar:      ['cobrancas','contas_receber','contas_pagar'].includes(r.recurso),
-      editar:     ['cobrancas','contas_receber','contas_pagar'].includes(r.recurso),
-      excluir:    false,
-    })),
-  },
-  {
-    id:'perfil_analista', nome:'Analista', descricao:'Somente visualização de dashboards', cor:'#38bdf8', total_usuarios:1,
-    permissoes: RECURSOS.map(r => ({
-      ...r,
-      visualizar: ['dashboard_inadimplencia','dashboard_dre','dashboard_pmp','dashboard_aging','relatorios'].includes(r.recurso),
-      criar: false, editar: false, excluir: false,
-    })),
-  },
-  {
-    id:'perfil_operador', nome:'Operador', descricao:'Operações e fretes', cor:'#fb923c', total_usuarios:1,
-    permissoes: RECURSOS.map(r => ({
-      ...r,
-      visualizar: ['veiculos','fretes','dashboard_inadimplencia'].includes(r.recurso),
-      criar:      ['veiculos','fretes'].includes(r.recurso),
-      editar:     ['veiculos','fretes'].includes(r.recurso),
-      excluir:    false,
-    })),
-  },
-];
-
-const CATEGORIAS = ['Financeiro', 'Operações', 'Admin'];
-
+import { CommonModule } from '@angular/common';
+import { Perfil, Permissao } from '../../../shared/models/financeiro.models';
+import { PermissoesService } from '../../../shared/services/permissoes.service' ;
 @Component({
   selector: 'app-admin-permissoes',
-  imports: [FormsModule],
+  imports: [FormsModule, CommonModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -84,7 +16,14 @@ const CATEGORIAS = ['Financeiro', 'Operações', 'Admin'];
         <button class="btn-primary" (click)="novoPerfil()">+ Novo Perfil</button>
       </div>
 
-      <!-- Perfil selector tabs -->
+      @if (carregando()) {
+        <div class="loading-message">Carregando perfis...</div>
+      }
+
+      @if (erroGeral()) {
+        <div class="alert-erro">⚠️ {{ erroGeral() }}</div>
+      }
+
       <div class="perfil-tabs">
         @for (p of perfis(); track p.id) {
           <div class="perfil-tab" [class.active]="perfilSelecionado()?.id === p.id"
@@ -94,7 +33,7 @@ const CATEGORIAS = ['Financeiro', 'Operações', 'Admin'];
               <div class="ptab-nome">{{ p.nome }}</div>
               <div class="ptab-users">{{ p.total_usuarios }} usuário{{ p.total_usuarios !== 1 ? 's' : '' }}</div>
             </div>
-            @if (p.id !== 'perfil_admin') {
+            @if (!isPerfilProtegido(p.id)) {
               <button class="ptab-del" title="Excluir perfil" (click)="$event.stopPropagation(); excluirPerfil(p.id)">✕</button>
             }
           </div>
@@ -102,7 +41,6 @@ const CATEGORIAS = ['Financeiro', 'Operações', 'Admin'];
       </div>
 
       @if (perfilSelecionado()) {
-        <!-- Perfil info -->
         <div class="card perfil-info-card">
           <div class="perfil-info-row">
             <div class="perfil-color-picker">
@@ -110,14 +48,17 @@ const CATEGORIAS = ['Financeiro', 'Operações', 'Admin'];
             </div>
             <div class="perfil-fields">
               <input class="inp" type="text" [(ngModel)]="perfilSelecionado()!.nome"
-                     [disabled]="perfilSelecionado()!.id === 'perfil_admin'"
+                     [disabled]="isPerfilProtegido(perfilSelecionado()!.id)"
                      placeholder="Nome do perfil"/>
               <input class="inp" type="text" [(ngModel)]="perfilSelecionado()!.descricao"
-                     [disabled]="perfilSelecionado()!.id === 'perfil_admin'"
+                     [disabled]="isPerfilProtegido(perfilSelecionado()!.id)"
                      placeholder="Descrição do perfil"/>
             </div>
-            @if (perfilSelecionado()!.id !== 'perfil_admin') {
-              <button class="btn-save-perfil" (click)="salvarPerfil()">💾 Salvar perfil</button>
+            @if (!isPerfilProtegido(perfilSelecionado()!.id)) {
+              <button class="btn-save-perfil" (click)="salvarPerfil()" [disabled]="salvando()">
+                @if (salvando()) { <span class="spin"></span> }
+                @else { 💾 Salvar perfil }
+              </button>
             } @else {
               <div class="admin-lock">🔒 Perfil protegido</div>
             }
@@ -128,7 +69,7 @@ const CATEGORIAS = ['Financeiro', 'Operações', 'Admin'];
         <div class="card">
           <div class="card-header">
             <h2 class="card-title">Matriz de Permissões</h2>
-            @if (perfilSelecionado()!.id !== 'perfil_admin') {
+            @if (!isPerfilProtegido(perfilSelecionado()!.id)) {
               <div class="bulk-actions">
                 <button class="btn-bulk success" (click)="marcarTodos(true)">✓ Selecionar todos</button>
                 <button class="btn-bulk danger"  (click)="marcarTodos(false)">✕ Remover todos</button>
@@ -145,22 +86,22 @@ const CATEGORIAS = ['Financeiro', 'Operações', 'Admin'];
             <div class="mh-acao">🗑️ Excluir</div>
           </div>
 
-          @for (cat of categorias; track cat) {
+          @for (cat of categorias(); track cat) {
             <div class="cat-group">
               <div class="cat-header">
                 <span class="cat-label">{{ cat }}</span>
-                @if (perfilSelecionado()!.id !== 'perfil_admin') {
+                @if (!isPerfilProtegido(perfilSelecionado()!.id)) {
                   <button class="cat-sel-all" (click)="marcarCategoria(cat, true)">tudo</button>
                   <button class="cat-sel-none" (click)="marcarCategoria(cat, false)">nenhum</button>
                 }
               </div>
               @for (perm of getPermsByCategoria(cat); track perm.recurso) {
-                <div class="matrix-row" [class.locked]="perfilSelecionado()!.id === 'perfil_admin'">
+                <div class="matrix-row" [class.locked]="isPerfilProtegido(perfilSelecionado()!.id)">
                   <div class="mr-label">{{ perm.label }}</div>
                   <div class="mr-check">
                     <label class="ck" [class.checked]="perm.visualizar">
                       <input type="checkbox" [(ngModel)]="perm.visualizar"
-                             [disabled]="perfilSelecionado()!.id === 'perfil_admin'"
+                             [disabled]="isPerfilProtegido(perfilSelecionado()!.id)"
                              (change)="onPermChange(perm, 'visualizar')"/>
                       <span class="ck-box"></span>
                     </label>
@@ -168,21 +109,21 @@ const CATEGORIAS = ['Financeiro', 'Operações', 'Admin'];
                   <div class="mr-check">
                     <label class="ck" [class.checked]="perm.criar">
                       <input type="checkbox" [(ngModel)]="perm.criar"
-                             [disabled]="perfilSelecionado()!.id === 'perfil_admin' || !perm.visualizar"/>
+                             [disabled]="isPerfilProtegido(perfilSelecionado()!.id) || !perm.visualizar"/>
                       <span class="ck-box"></span>
                     </label>
                   </div>
                   <div class="mr-check">
                     <label class="ck" [class.checked]="perm.editar">
                       <input type="checkbox" [(ngModel)]="perm.editar"
-                             [disabled]="perfilSelecionado()!.id === 'perfil_admin' || !perm.visualizar"/>
+                             [disabled]="isPerfilProtegido(perfilSelecionado()!.id) || !perm.visualizar"/>
                       <span class="ck-box"></span>
                     </label>
                   </div>
                   <div class="mr-check">
                     <label class="ck" [class.checked]="perm.excluir">
                       <input type="checkbox" [(ngModel)]="perm.excluir"
-                             [disabled]="perfilSelecionado()!.id === 'perfil_admin' || !perm.visualizar"/>
+                             [disabled]="isPerfilProtegido(perfilSelecionado()!.id) || !perm.visualizar"/>
                       <span class="ck-box"></span>
                     </label>
                   </div>
@@ -205,6 +146,9 @@ const CATEGORIAS = ['Financeiro', 'Operações', 'Admin'];
     .page-title span{background:linear-gradient(90deg,#a78bfa,#f43f5e);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
     .page-sub{color:var(--muted);font-size:13px;margin-top:4px}
     .btn-primary{background:linear-gradient(135deg,#a78bfa,#38bdf8);border:none;border-radius:8px;color:white;font-size:12.5px;font-weight:600;font-family:'Outfit',sans-serif;padding:9px 18px;cursor:pointer}
+
+    .loading-message{background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.3);color:#38bdf8;padding:12px 16px;border-radius:8px;font-size:13px}
+    .alert-erro{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:#f43f5e;padding:12px 16px;border-radius:8px;font-size:13px}
 
     /* Perfil tabs */
     .perfil-tabs{display:flex;gap:10px;flex-wrap:wrap}
@@ -230,7 +174,7 @@ const CATEGORIAS = ['Financeiro', 'Operações', 'Admin'];
     .inp{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:'Outfit',sans-serif;padding:7px 12px;outline:none;flex:1;min-width:140px}
     .inp:focus{border-color:rgba(167,139,250,.4)}
     .inp:disabled{opacity:.5}
-    .btn-save-perfil{background:linear-gradient(135deg,#34d399,#38bdf8);border:none;border-radius:8px;color:#0b0f1a;font-size:12px;font-weight:700;font-family:'Outfit',sans-serif;padding:8px 16px;cursor:pointer;white-space:nowrap}
+    .btn-save-perfil{background:linear-gradient(135deg,#34d399,#38bdf8);border:none;border-radius:8px;color:#0b0f1a;font-size:12px;font-weight:700;font-family:'Outfit',sans-serif;padding:8px 16px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px}
     .admin-lock{background:rgba(100,116,139,.1);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;padding:7px 14px}
 
     /* Bulk actions */
@@ -270,18 +214,66 @@ const CATEGORIAS = ['Financeiro', 'Operações', 'Admin'];
     .ck.checked .ck-box::after{content:'✓';color:white;font-size:11px;font-weight:700;line-height:1}
     .ck:hover .ck-box{border-color:rgba(167,139,250,.5)}
 
+    .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
     .toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;animation:slideIn .3s ease;box-shadow:0 8px 24px rgba(0,0,0,.4)}
     @keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
     .toast-success{background:#14532d;border:1px solid #34d399;color:#34d399}
     .toast-error{background:#450a0a;border:1px solid #f43f5e;color:#f43f5e}
   `],
 })
-export class AdminPermissoesComponent {
-  readonly categorias = CATEGORIAS;
-  readonly perfis     = signal<Perfil[]>(JSON.parse(JSON.stringify(PERFIS_MOCK)));
-  readonly perfilSelecionado = signal<Perfil | null>(PERFIS_MOCK[0]);
+export class AdminPermissoesComponent implements OnInit {
+  protected readonly permissoesService = inject(PermissoesService);
+
+  readonly perfis     = signal<Perfil[]>([]);
+  readonly categorias = signal<string[]>([]);
+  readonly perfilSelecionado = signal<Perfil | null>(null);
+  readonly carregando = signal(false);
+  readonly erroGeral = signal('');
+  readonly salvando = signal(false);
   readonly toast     = signal('');
   readonly toastType = signal<'success'|'error'>('success');
+
+  ngOnInit() {
+    this.carregarDados();
+  }
+
+  carregarDados() {
+    this.carregando.set(true);
+    this.erroGeral.set('');
+
+    // Carregar perfis
+    this.permissoesService.getPerfis().subscribe({
+      next: (response: any) => {
+        console.log('PERFIS', response.perfis);
+        console.log('PERMISSOES', response.perfis[0]?.permissoes);
+
+        this.perfis.set(response.perfis);
+
+        if (response.perfis.length > 0) {
+          this.perfilSelecionado.set(response.perfis[0]);
+        }
+
+        this.carregando.set(false);
+      },
+      error: (err) => {
+        console.error('Erro ao carregar perfis:', err);
+        this.erroGeral.set('Erro ao carregar perfis. Tente novamente.');
+        this.carregando.set(false);
+      }
+    });
+
+    // Carregar categorias
+    this.permissoesService.getCategorias().subscribe({
+      next: (response) => {
+        this.categorias.set(response.categorias);
+      },
+      error: (err) => {
+        console.error('Erro ao carregar categorias:', err);
+      }
+    });
+  }
 
   selecionarPerfil(p: Perfil) {
     this.perfilSelecionado.set(p);
@@ -293,46 +285,120 @@ export class AdminPermissoesComponent {
 
   onPermChange(perm: Permissao, campo: 'visualizar') {
     if (!perm.visualizar) {
-      perm.criar = false; perm.editar = false; perm.excluir = false;
+      perm.criar = false; 
+      perm.editar = false; 
+      perm.excluir = false;
     }
   }
 
   marcarTodos(val: boolean) {
     this.perfilSelecionado()?.permissoes.forEach(p => {
-      p.visualizar = val; p.criar = val; p.editar = val; p.excluir = val;
+      p.visualizar = val; 
+      p.criar = val; 
+      p.editar = val; 
+      p.excluir = val;
     });
   }
 
   marcarCategoria(cat: string, val: boolean) {
     this.perfilSelecionado()?.permissoes
       .filter(p => p.categoria === cat)
-      .forEach(p => { p.visualizar = val; p.criar = val; p.editar = val; p.excluir = val; });
+      .forEach(p => { 
+        p.visualizar = val; 
+        p.criar = val; 
+        p.editar = val; 
+        p.excluir = val; 
+      });
   }
 
   salvarPerfil() {
-    this.showToast('Permissões salvas com sucesso!', 'success');
+    const perfil = this.perfilSelecionado();
+    if (!perfil) return;
+
+    this.salvando.set(true);
+
+    // Construir objeto de permissões para enviar
+    const permissoesMap: Record<string, any> = {};
+    perfil.permissoes.forEach(p => {
+      permissoesMap[p.recurso] = {
+        visualizar: p.visualizar,
+        criar: p.criar,
+        editar: p.editar,
+        excluir: p.excluir
+      };
+    });
+
+    const updateData = {
+      nome: perfil.nome,
+      descricao: perfil.descricao,
+      cor: perfil.cor,
+      permissoes: permissoesMap
+    };
+
+    this.permissoesService.atualizarPerfil(perfil.id, updateData).subscribe({
+      next: (perfilAtualizado) => {
+        this.perfis.update(list =>
+          list.map(p => p.id === perfilAtualizado.id ? perfilAtualizado : p)
+        );
+        this.perfilSelecionado.set(perfilAtualizado);
+        this.showToast('Permissões salvas com sucesso!', 'success');
+        this.salvando.set(false);
+      },
+      error: (err) => {
+        console.error('Erro:', err);
+        this.showToast(err.error?.detail || 'Erro ao salvar permissões', 'error');
+        this.salvando.set(false);
+      }
+    });
   }
 
   novoPerfil() {
-    const novo: Perfil = {
-      id: 'perfil_' + Math.random().toString(36).slice(2, 8),
-      nome: 'Novo Perfil', descricao: 'Descreva o perfil',
-      cor: '#a78bfa', total_usuarios: 0,
-      permissoes: RECURSOS.map(r => ({ ...r, visualizar:false, criar:false, editar:false, excluir:false })),
-    };
-    this.perfis.update(list => [...list, novo]);
-    this.perfilSelecionado.set(novo);
-    this.showToast('Perfil criado! Configure as permissões e salve.', 'success');
+    this.showToast('Funcionalidade de criar novo perfil em desenvolvimento', 'error');
   }
 
   excluirPerfil(id: string) {
-    this.perfis.update(list => list.filter(p => p.id !== id));
-    this.perfilSelecionado.set(this.perfis()[0] ?? null);
-    this.showToast('Perfil excluído.', 'success');
+    if (!confirm('Tem certeza que deseja deletar este perfil?')) {
+      return;
+    }
+
+    this.permissoesService.deletarPerfil(id).subscribe({
+      next: () => {
+        this.perfis.update(list => list.filter(p => p.id !== id));
+        if (this.perfilSelecionado()?.id === id) {
+          this.perfilSelecionado.set(this.perfis()[0] ?? null);
+        }
+        this.showToast('Perfil excluído com sucesso', 'success');
+      },
+      error: (err) => {
+        console.error('Erro:', err);
+        this.showToast(err.error?.detail || 'Erro ao excluir perfil', 'error');
+      }
+    });
   }
 
+  temPermissao(
+  perfilId: string,
+  recurso: string,
+  acao: keyof Permissao
+  ): boolean {
+    const perfil = this.perfis().find(p => p.id === perfilId);
+
+    if (!perfil) return false;
+
+    const permissao = perfil.permissoes.find(
+      p => p.recurso === recurso
+    );
+
+    return Boolean(permissao?.[acao]);
+  }
+
+  isPerfilProtegido(perfilId: any) {
+  return String(perfilId).startsWith('perfil_');
+}
+
   private showToast(msg: string, type: 'success'|'error') {
-    this.toast.set(msg); this.toastType.set(type);
+    this.toast.set(msg); 
+    this.toastType.set(type);
     setTimeout(() => this.toast.set(''), 3000);
   }
 }

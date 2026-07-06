@@ -1,7 +1,7 @@
 import { CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from '../services/auth.service';
-import { RecursoSistema } from '../../shared/models/financeiro.models';
+import { RecursoSistema, Permissao } from '../../shared/models/financeiro.models';
 
 // ── Guard de autenticação ─────────────────────────────────────
 export const authGuard: CanActivateFn = () => {
@@ -39,16 +39,23 @@ export const adminPmrGuard: CanActivateFn = () => {
 
 // ── Factory: guard para recurso específico 
 // Uso: canActivate: [authGuard, permissaoGuard('dashboard_inadimplencia')]
-export function permissaoGuard(recurso: RecursoSistema): CanActivateFn {
+export function permissaoGuard(
+  recurso: RecursoSistema
+): CanActivateFn {
   return () => {
-    const auth   = inject(AuthService);
+    const auth = inject(AuthService);
     const router = inject(Router);
+
     if (!auth.logado()) {
       router.navigate(['/login']);
       return false;
     }
-    if (auth.temPermissao(recurso, 'visualizar')) return true;
-    router.navigate(['/financeiro/inadimplencia']);
+
+    if (auth.temPermissao(recurso)) {
+      return true;
+    }
+
+    router.navigate(['/acesso-negado']);
     return false;
   };
 }

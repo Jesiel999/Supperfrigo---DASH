@@ -1,11 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { InadimplenciaService }       from '../../shared/services/inadimplencia.service';
-import { LineChartComponent } from '../../shared/components/inadimplencia/line-chart/line-chart';
-import { KpiCardComponent }           from '../../shared/components/inadimplencia/kpi-card/kpi-card';
-import { KpiCardInvertComponent }           from '../../shared/components/inadimplencia/kpi-card-invert/kpi-card';
-import { DonutChartComponent }        from '../../shared/components/inadimplencia/donut-chart/donut-chart';
-import { TopDevedoresBarComponent }   from '../../shared/components/inadimplencia/line-bar/line-bar';
-import { DataTableComponent }         from '../../shared/components/inadimplencia/data-table/data-table';
+import { InadimplenciaService }       from '../../../../shared/services/inadimplencia.service';
+import { LineChartComponent } from '../../../../shared/components/inadimplencia/line-chart/line-chart';
+import { KpiCardComponent }           from '../../../../shared/components/inadimplencia/kpi-card/kpi-card';
+import { KpiCardInvertComponent }           from '../../../../shared/components/inadimplencia/kpi-card-invert/kpi-card';
+import { DonutChartComponent }        from '../../../../shared/components/inadimplencia/donut-chart/donut-chart';
+import { TopDevedoresBarComponent }   from '../../../../shared/components/inadimplencia/line-bar/line-bar';
+import { DataTableComponent }         from '../../../../shared/components/inadimplencia/data-table/data-table';
 
 @Component({
   selector: 'app-inadimplencia',

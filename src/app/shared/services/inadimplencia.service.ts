@@ -26,7 +26,7 @@ export class InadimplenciaService {
     const ontem = new Date();
     ontem.setDate(ontem.getDate() - 1);
 
-    return ontem.toISOString().split('T')[0];
+    return `${ontem.getFullYear()}-${String(ontem.getMonth() + 1).padStart(2, '0')}-${String(ontem.getDate()).padStart(2, '0')}`;
   }
 
   readonly dataInicio = signal<string>(this.getPrimeiroDiaMes());
@@ -101,12 +101,23 @@ export class InadimplenciaService {
     const qtdAtual    = new Set(inadAtual.map(c => c.id_pessoa)).size;
     const qtdAnterior = new Set(inadAnt.map(c => c.id_pessoa)).size;
 
-    const ticketAtual    = qtdAtual    ? totalAtual    / qtdAtual    : 0;
-    const ticketAnterior = qtdAnterior ? totalAnterior / qtdAnterior : 0;
+    const qtdTitulosAtual = inadAtual.length;
+    const qtdTitulosAnterior = inadAnt.length;
+    
+    const ticketAtual    = qtdTitulosAtual    ? totalAtual    / qtdTitulosAtual    : 0;
+    const ticketAnterior = qtdTitulosAnterior ? totalAnterior / qtdTitulosAnterior : 0;
 
+    // Recuperado = apenas baixas ocorridas DEPOIS do vencimento (pagamento em atraso),
+    // dentro do período selecionado. Baixa em dia (data_baixa <= data_vencimento) não conta
+    // como "recuperação de inadimplência" — é apenas um pagamento normal.
     const recuperadoMes = inicio && fim
       ? comBaixa
-          .filter(c => c.data_baixa && c.data_baixa >= inicio && c.data_baixa <= fim)
+          .filter(c =>
+            c.data_baixa &&
+            c.data_baixa > c.data_vencimento &&
+            c.data_baixa >= inicio &&
+            c.data_baixa <= fim
+          )
           .reduce((s, c) => s + c.valor_total, 0)
       : 0;
 
@@ -143,17 +154,20 @@ export class InadimplenciaService {
     const evolucaoMap   = new Map<string, number>();
     const recuperadoMap = new Map<string, number>();
 
+    // Linha vermelha: soma valor_total por data_vencimento, APENAS de quem não tem data_baixa
     inadAtual.forEach(c => {
       const dt = this._parseDate(c.data_vencimento);
       if (dt < dtInicio || dt > dtFim) return;
       evolucaoMap.set(c.data_vencimento, (evolucaoMap.get(c.data_vencimento) ?? 0) + c.valor_total);
     });
 
+    // Linha verde: soma valor_total por data_vencimento, APENAS RECEBIMENTOS após data de vencimento
     comBaixa.forEach(c => {
       if (!c.data_baixa) return;
+      const dt = this._parseDate(c.data_vencimento);
       const baixa = this._parseDate(c.data_baixa);
       if (baixa < dtInicio || baixa > dtFim) return;
-      recuperadoMap.set(c.data_baixa, (recuperadoMap.get(c.data_baixa) ?? 0) + c.valor_total);
+      recuperadoMap.set(c.data_vencimento, (recuperadoMap.get(c.data_vencimento) ?? 0) + c.valor_total);
     });
 
     return dias.map(d => ({
@@ -315,7 +329,7 @@ export class InadimplenciaService {
   private _calcularStatus(item: InadimplenciaApiItem): StatusInadimplencia {
     if (item.data_baixa)       return 'PAGO';
     if (item.dias_atraso > 0)  return 'VENCIDO';
-    return 'EM_ABERTO';
+    return 'EM ABERTO';
   }
 
   // ─── Actions ──────────────────────────────────────────────────

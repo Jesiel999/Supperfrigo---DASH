@@ -26,7 +26,7 @@ export type KpiVariant = 'danger' | 'warning' | 'info' | 'success';
       </div>
 
       <div class="kpi-delta" [class]="deltaClass()">
-        {{ deltaPrefix() }} {{ Math.abs(delta()) | number:'1.1-1' }}% vs mês anterior
+        {{ deltaPrefix() }} {{ Math.abs(delta()) | number:'1.1-1' }}% vs período anterior
       </div>
     </div>
   `,

@@ -51,12 +51,12 @@ export class AuthService {
 
   // ── Perfil ────────────────────────────────────────────────────
   readonly perfilNome = computed(() =>
-    this._usuario()?.perfil_nome ?? this._usuario()?.perfil_nome ?? ''
+    this._usuario()?.role ?? this._usuario()?.role ?? ''
   );
   readonly isAdmin = computed(() => {
     const u = this._usuario();
     if (!u) return false;
-    const perfil = (u.perfil_nome ?? u.perfil_nome ?? '').toLowerCase();
+    const perfil = (u.role ?? u.role ?? '').toLowerCase();
     return perfil.includes('admin');
   });
 
@@ -114,7 +114,7 @@ export class AuthService {
   getToken() { return this._token(); }
 
   // ── Verificação de permissão ──────────────────────────────────
-  temPermissao(recurso: RecursoSistema, acao: Permissao = 'visualizar'): boolean {
+  temPermissao(recurso: RecursoSistema) {
     const u = this._usuario();
     if (!u) return false;
     if (this.isAdmin()) return true;
@@ -123,13 +123,13 @@ export class AuthService {
     const permissoes = u.permissoes;
     if (permissoes && typeof permissoes === 'object' && !Array.isArray(permissoes)) {
       const acoes = (permissoes as Record<string, string[]>)[recurso] ?? [];
-      return acoes.includes(acao);
+
     }
 
     // Sistema antigo: permissoes é array [{ recurso, acoes[] }]
     if (Array.isArray(permissoes)) {
       const entry = (permissoes as any[]).find(p => p.recurso === recurso);
-      return entry?.acoes?.includes(acao) ?? false;
+
     }
 
     return false;
@@ -163,8 +163,12 @@ export class AuthService {
       tenant_slug:  u.tenant_slug ?? '',
 
       perfil_id:    u.perfil_id ?? 0,
-      perfil_nome:  u.perfil_nome ?? '',
       perfil_cor:   u.perfil_cor ?? '',
+
+      telefone: u.telefone ?? null,
+      ativo: u.ativo ?? true,
+      role: u.role ?? 'operador',
+      ultimo_acesso: u.ultimo_acesso ?? null,
 
       empresas: Array.isArray(u.empresas) ? u.empresas : [],
       tenants:  Array.isArray(u.tenants) ? u.tenants : [],
