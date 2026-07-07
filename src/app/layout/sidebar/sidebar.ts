@@ -9,7 +9,7 @@ import { AuthService } from '../../auth/services/auth.service';
   template: `
     <aside class="sidebar" [class.open]="open()">
       <div class="logo">
-        <span class="logo-text">Dash<em>GSC</em></span>
+        <span class="logo-text">360<em>Core</em></span>
         <button class="close-btn" (click)="fechar.emit()">✕</button>
       </div>
 
@@ -17,6 +17,9 @@ import { AuthService } from '../../auth/services/auth.service';
         <p class="section-label">Sances</p>
         <a class="nav-item" routerLink="/financeiro/inadimplencia" routerLinkActive="active" (click)="fechar.emit()">
           <span class="nav-icon">💸</span><span>Financeiro</span>
+        </a>
+        <a class="nav-item" routerLink="/estoque/movimentacao" routerLinkActive="active" (click)="fechar.emit()">
+          <span class="nav-icon">⚙️</span><span>Estoque</span>
         </a>
       </div>
       <div class="nav-section">

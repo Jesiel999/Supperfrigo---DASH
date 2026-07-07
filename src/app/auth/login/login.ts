@@ -14,12 +14,12 @@ import { AuthService } from '../services/auth.service';
       <div class="login-card">
         <!-- Logo -->
         <div class="logo">
-          <div class="logo-icon">💰</div>
-          <span class="logo-text">Finance<em>Flow</em></span>
+          <div class="logo-icon"></div>
+          <span class="logo-text">360<em>Core</em></span>
         </div>
 
         <h1 class="title">Bem-vindo de volta</h1>
-        <p class="subtitle">Faça login para acessar o painel financeiro</p>
+        <p class="subtitle">Faça login para acessar</p>
 
         <!-- Form -->
         <form class="form" (ngSubmit)="onSubmit()">
@@ -81,7 +81,7 @@ import { AuthService } from '../services/auth.service';
         </form>
 
         <p class="footer-text">
-          FinanceFlow © {{ ano }} · Painel Financeiro
+          360Core © {{ ano }}
         </p>
       </div>
     </div>

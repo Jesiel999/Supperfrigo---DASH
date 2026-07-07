@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "financeflow": {
+    "360core": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -19,7 +19,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/financeflow",
+            "outputPath": "dist/360core",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [],
@@ -49,8 +49,8 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {
-            "production": { "buildTarget": "financeflow:build:production" },
-            "development": { "buildTarget": "financeflow:build:development" }
+            "production": { "buildTarget": "360core:build:production" },
+            "development": { "buildTarget": "360core:build:development" }
           },
           "defaultConfiguration": "development"
         }

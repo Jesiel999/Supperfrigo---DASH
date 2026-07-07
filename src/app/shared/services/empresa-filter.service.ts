@@ -22,38 +22,50 @@ export class EmpresaFilterService {
   );
 
   // ── Lista visível no dropdown ──────────────────────────────────
-  // Prioridade:
-  //   1. Se o JWT tem empresas → mostra só elas (já disponíveis no login)
-  //   2. Se JWT não restringe → mostra as que vieram dos dados da API
-  //      (populadas pelo InadimplenciaService após o primeiro carregamento)
   readonly empresasVisiveis = computed((): EmpresaAutorizada[] => {
     if (!this.semRestricao()) {
-      // Usuário tem restrição: mostra exatamente o que o JWT autoriza
       return this.autorizadasNoJwt();
     }
-    // Sem restrição: mostra as empresas encontradas nos dados
     return this._dosDados();
   });
 
-  // ── Selecionadas pelo usuário (persistidas por tenant) ────────
-  private readonly _selecionadas = signal<Set<string>>(
-    this._carregarStorage()
-  );
+  // ── Selecionadas pelo usuário ──────────────────────────────────
+  // IMPORTANTE: aqui o Set guarda EXATAMENTE os códigos marcados.
+  // Set vazio = literalmente "nenhuma empresa marcada", nunca "todas".
+  // "Todas marcadas" é apenas quando o Set contém todos os códigos visíveis.
+  private readonly _selecionadas = signal<Set<string>>(new Set());
   readonly selecionadas = this._selecionadas.asReadonly();
 
+  // Enquanto o usuário não mexer manualmente, a seleção acompanha
+  // automaticamente a lista de empresas visíveis (ou seja, "todas" por padrão).
+  private _customizado = false;
+
   constructor() {
-    // Persiste automaticamente ao mudar seleção
+    // Persiste automaticamente ao mudar seleção, mas só depois que o
+    // usuário customizou algo manualmente (senão ficaríamos gravando
+    // o estado "padrão" toda vez que a lista de empresas mudasse).
     effect(() => {
       const ids = Array.from(this._selecionadas());
-      localStorage.setItem(this._storageKey(), JSON.stringify(ids));
+      if (this._customizado) {
+        localStorage.setItem(this._storageKey(), JSON.stringify(ids));
+      }
     });
 
-    // Ao trocar de tenant, recarrega seleção do storage daquele tenant
+    // Sempre que a lista de empresas visíveis mudar (JWT carregou,
+    // ou os dados da API chegaram) E o usuário ainda não tiver
+    // customizado a seleção, marca todas automaticamente.
     effect(() => {
-      const tenant = this.auth.tenantAtual();
-      if (tenant) {
-        this._selecionadas.set(this._carregarStorage());
+      const visiveis = this.empresasVisiveis();
+      if (!this._customizado) {
+        this._selecionadas.set(new Set(visiveis.map(e => e.codigo)));
       }
+    });
+
+    // Ao trocar de tenant, recarrega a seleção salva daquele tenant
+    // (ou volta ao padrão "todas" se não houver nada salvo).
+    effect(() => {
+      this.auth.tenantAtual();
+      this._recarregarDoStorage();
     });
   }
 
@@ -68,46 +80,48 @@ export class EmpresaFilterService {
 
     this._dosDados.set(empresas);
 
-    // Remove seleções que não existem mais nos dados
-    const codigos = new Set(empresas.map(e => e.codigo));
-    const nova    = new Set(
-      Array.from(this._selecionadas()).filter(c => codigos.has(c))
-    );
-    this._selecionadas.set(nova);
+    if (this._customizado) {
+      // Remove seleções que não existem mais nos dados
+      const codigos = new Set(empresas.map(e => e.codigo));
+      const nova = new Set(
+        Array.from(this._selecionadas()).filter(c => codigos.has(c))
+      );
+      this._selecionadas.set(nova);
+    }
+    // Se não customizado, o effect acima já re-seleciona "todas" automaticamente
   }
 
   // ── Computed: "todas selecionadas" ────────────────────────────
   readonly todasSelecionadas = computed(() => {
-    const sel     = this._selecionadas();
+    const sel = this._selecionadas();
     const visiveis = this.empresasVisiveis();
-    return sel.size === 0 || sel.size >= visiveis.length;
+    return visiveis.length > 0 && sel.size >= visiveis.length;
   });
 
   estaSelecionada(codigo: string): boolean {
-    if (this._selecionadas().size === 0) return true;
     return this._selecionadas().has(codigo);
   }
 
   // ── Retorna códigos para enviar como param na API ─────────────
-  // [] = sem filtro de empresa (API usa o JWT para decidir)
+  // [] = sem filtro de empresa (todas selecionadas, API usa o JWT p/ decidir)
   codigosSelecionados(): string[] {
-    const sel = this._selecionadas();
-    if (sel.size === 0) return [];
-    return Array.from(sel);
+    if (this.todasSelecionadas()) return [];
+    return Array.from(this._selecionadas());
   }
 
   // ── Toggle individual ─────────────────────────────────────────
   toggle(codigo: string): void {
+    this._customizado = true;
     const copia = new Set(this._selecionadas());
     if (copia.has(codigo)) copia.delete(codigo);
     else                   copia.add(codigo);
     this._selecionadas.set(copia);
   }
 
-  // ── Selecionar/desmarcar todas ────────────────────────────────
+  // ── Selecionar/desmarcar todas ─────────────────────────────────
   toggleTodas(): void {
+    this._customizado = true;
     if (this.todasSelecionadas()) {
-      this._selecionadas.set(new Set());
     } else {
       this._selecionadas.set(
         new Set(this.empresasVisiveis().map(e => e.codigo))
@@ -117,24 +131,32 @@ export class EmpresaFilterService {
 
   // ── Filtra lista local por empresa selecionada ────────────────
   filtrar<T extends { codigo_empresa: string }>(items: T[]): T[] {
+    if (this.todasSelecionadas()) return items;
     const sel = this._selecionadas();
-    if (sel.size === 0) return items;
     return items.filter(i => sel.has(i.codigo_empresa));
   }
 
   // ── Storage com chave isolada por tenant ──────────────────────
   private _storageKey(): string {
     const tid = this.auth.tenantAtual()?.id ?? 'global';
-    return `${STORAGE_KEY}_${tid}`;
+    return `${STORAGE_KEY}`;
   }
 
-  private _carregarStorage(): Set<string> {
+  private _recarregarDoStorage(): void {
     try {
       const raw = localStorage.getItem(this._storageKey());
-      if (!raw) return new Set();
-      return new Set(JSON.parse(raw) as string[]);
+      if (raw === null) {
+        // Nada salvo para esse tenant: volta ao padrão "todas"
+        this._customizado = false;
+        this._selecionadas.set(new Set(this.empresasVisiveis().map(e => e.codigo)));
+        return;
+      }
+      const codigos = JSON.parse(raw) as string[];
+      this._customizado = true;
+      this._selecionadas.set(new Set(codigos));
     } catch {
-      return new Set();
+      this._customizado = false;
+      this._selecionadas.set(new Set());
     }
   }
 }

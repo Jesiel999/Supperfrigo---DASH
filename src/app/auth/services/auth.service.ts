@@ -15,6 +15,8 @@ import {
 const TOKEN_KEY  = 'ff_token';
 const USER_KEY   = 'ff_usuario';
 const TENANT_KEY = 'ff_tenant_id';
+const EMPRESA    = 'ff_empresas_selecionadas';
+const EMPRESA_GLOBAL = 'ff_empresas_selecionadas_global';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -106,6 +108,8 @@ export class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TENANT_KEY);
+    localStorage.removeItem(EMPRESA);
+    localStorage.removeItem(EMPRESA_GLOBAL);
     this._token.set(null);
     this._usuario.set(null);
     this.router.navigate(['/login']);

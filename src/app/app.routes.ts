@@ -23,6 +23,14 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'estoque',
+    canActivate: [authGuard],
+    loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),
+    children: [
+      { path: 'movimentacao', loadComponent: () => import('./pages/sances/estoque/movimentacao/movimentacao').then(m => m.MovimentacaoComponent) },
+    ],
+  },
+  {
     path: 'chamados',
     canActivate: [authGuard, adminInadimplenciaGuard],
     loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),
