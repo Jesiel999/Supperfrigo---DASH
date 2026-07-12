@@ -4,20 +4,20 @@ import { FormsModule } from '@angular/forms';
 
 type StatusR = 'aberto' | 'vencido' | 'pago' | 'parcial';
 interface ContaReceber {
-  id: string; cliente: string; documento: string; descricao: string;
+  id: number; cliente: string; documento: string; descricao: string;
   valor: number; valor_pago: number; vencimento: string;
   status: StatusR; dias_atraso: number; parcela: string;
 }
 
 const MOCK: ContaReceber[] = [
-  { id:'r1', cliente:'Transportes Alves',    documento:'12.345.678/0001-90', descricao:'Frete SP–RJ Maio',    valor:32400, valor_pago:0,     vencimento:'2025-05-10', status:'vencido', dias_atraso:26, parcela:'1/3' },
-  { id:'r2', cliente:'Madeireira São Paulo', documento:'98.765.432/0001-11', descricao:'Transporte Madeira',  valor:18900, valor_pago:18900, vencimento:'2025-05-20', status:'pago',    dias_atraso:0,  parcela:'1/1' },
-  { id:'r3', cliente:'Construtora BH',       documento:'55.111.222/0001-33', descricao:'Frete BH–Uberaba',    valor:12600, valor_pago:6300,  vencimento:'2025-05-25', status:'parcial', dias_atraso:11, parcela:'2/4' },
-  { id:'r4', cliente:'Agro Rio Verde',       documento:'77.444.555/0001-77', descricao:'Colheita Transporte', valor:45000, valor_pago:0,     vencimento:'2025-06-05', status:'aberto',  dias_atraso:0,  parcela:'1/2' },
-  { id:'r5', cliente:'Frigorífico Central',  documento:'33.222.111/0001-44', descricao:'Frete Frigorífico',   valor:8750,  valor_pago:8750,  vencimento:'2025-05-28', status:'pago',    dias_atraso:0,  parcela:'1/1' },
-  { id:'r6', cliente:'Distribuidora Norte',  documento:'66.777.888/0001-55', descricao:'Distribuição Semanal',valor:22300, valor_pago:0,     vencimento:'2025-04-30', status:'vencido', dias_atraso:36, parcela:'3/3' },
-  { id:'r7', cliente:'Cerâmica Sul',         documento:'44.333.999/0001-66', descricao:'Transporte Cerâmica', valor:9400,  valor_pago:0,     vencimento:'2025-06-10', status:'aberto',  dias_atraso:0,  parcela:'1/1' },
-  { id:'r8', cliente:'Comércio Atacadista',  documento:'11.999.888/0001-22', descricao:'Frete Atacado',       valor:15600, valor_pago:15600, vencimento:'2025-05-15', status:'pago',    dias_atraso:0,  parcela:'2/2' },
+  { id:1, cliente:'Transportes Alves',    documento:'12.345.678/0001-90', descricao:'Frete SP–RJ Maio',    valor:32400, valor_pago:0,     vencimento:'2025-05-10', status:'vencido', dias_atraso:26, parcela:'1/3' },
+  { id:2, cliente:'Madeireira São Paulo', documento:'98.765.432/0001-11', descricao:'Transporte Madeira',  valor:18900, valor_pago:18900, vencimento:'2025-05-20', status:'pago',    dias_atraso:0,  parcela:'1/1' },
+  { id:3, cliente:'Construtora BH',       documento:'55.111.222/0001-33', descricao:'Frete BH–Uberaba',    valor:12600, valor_pago:6300,  vencimento:'2025-05-25', status:'parcial', dias_atraso:11, parcela:'2/4' },
+  { id:4, cliente:'Agro Rio Verde',       documento:'77.444.555/0001-77', descricao:'Colheita Transporte', valor:45000, valor_pago:0,     vencimento:'2025-06-05', status:'aberto',  dias_atraso:0,  parcela:'1/2' },
+  { id:5, cliente:'Frigorífico Central',  documento:'33.222.111/0001-44', descricao:'Frete Frigorífico',   valor:8750,  valor_pago:8750,  vencimento:'2025-05-28', status:'pago',    dias_atraso:0,  parcela:'1/1' },
+  { id:6, cliente:'Distribuidora Norte',  documento:'66.777.888/0001-55', descricao:'Distribuição Semanal',valor:22300, valor_pago:0,     vencimento:'2025-04-30', status:'vencido', dias_atraso:36, parcela:'3/3' },
+  { id:7, cliente:'Cerâmica Sul',         documento:'44.333.999/0001-66', descricao:'Transporte Cerâmica', valor:9400,  valor_pago:0,     vencimento:'2025-06-10', status:'aberto',  dias_atraso:0,  parcela:'1/1' },
+  { id:8, cliente:'Comércio Atacadista',  documento:'11.999.888/0001-22', descricao:'Frete Atacado',       valor:15600, valor_pago:15600, vencimento:'2025-05-15', status:'pago',    dias_atraso:0,  parcela:'2/2' },
 ];
 
 const ST: Record<StatusR, { label: string; css: string }> = {

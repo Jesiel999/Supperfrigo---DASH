@@ -8,34 +8,8 @@ import {
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../auth/services/auth.service';
 import { EmpresaFilterService } from '../../shared/services/empresa-filter.service';
-
-type TopbarTab = {
-  label: string;
-  route: string;
-  hideTablet?: boolean;
-};
-
-type TopbarSection = 'financeiro' | 'chamados' | 'admin' | null;
-
-const TOPBAR_LINKS: Record<Exclude<TopbarSection, null>, TopbarTab[]> = {
-  financeiro: [
-    { label: 'Inadimplência', route: '/financeiro/inadimplencia' },
-    { label: 'Cobranças', route: '/financeiro/cobrancas' },
-    { label: 'DRE', route: '/financeiro/dre' },
-    { label: 'PMP', route: '/financeiro/pmp' },
-    { label: 'Receber', route: '/financeiro/contas-receber', hideTablet: true },
-    { label: 'Pagar', route: '/financeiro/contas-pagar', hideTablet: true },
-    { label: 'Fluxo', route: '/financeiro/fluxo-caixa', hideTablet: true },
-    { label: 'Aging', route: '/financeiro/aging-report', hideTablet: true },
-  ],
-  chamados: [
-    { label: 'Geral', route: '/chamados/geral' },
-  ],
-  admin: [
-    { label: 'Usuários', route: '/admin/usuarios' },
-    { label: 'Perfis & Permissões', route: '/admin/permissoes' },
-  ],
-};
+import { MenuStateService } from '../../shared/services/menu-state.service';
+import { AplicacaoMenu } from '../../shared/models/usuario.models';
 
 @Component({
   selector: 'app-topbar',
@@ -58,7 +32,6 @@ const TOPBAR_LINKS: Record<Exclude<TopbarSection, null>, TopbarTab[]> = {
     .tabs { display: flex; align-items: center; gap: 2px; height: 100%; overflow-x: auto; flex: 1; }
     .tabs::-webkit-scrollbar { height: 0; }
     @media (max-width: 768px)  { .hide-mobile { display: none !important; } }
-    @media (max-width: 1024px) { .hide-tablet { display: none !important; } }
 
     .tab {
       padding: 6px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 500;
@@ -84,7 +57,6 @@ const TOPBAR_LINKS: Record<Exclude<TopbarSection, null>, TopbarTab[]> = {
       cursor: pointer; transition: background .18s; white-space: nowrap;
     }
     .filter-btn:hover { background: rgba(255,255,255,.10); }
-    .tenant-btn { border-color: rgba(99,102,241,.3); }
 
     .badge {
       background: #f43f5e; color: white; font-size: 9px; font-weight: 700;
@@ -94,7 +66,7 @@ const TOPBAR_LINKS: Record<Exclude<TopbarSection, null>, TopbarTab[]> = {
     .chevron { font-size: 10px; color: var(--muted); transition: transform .2s; }
     .chevron.rot { transform: rotate(180deg); }
 
-    .empresa-filter, .tenant-filter { position: relative; }
+    .empresa-filter { position: relative; }
 
     .dropdown {
       position: absolute; top: calc(100% + 8px); right: 0;
@@ -135,20 +107,6 @@ const TOPBAR_LINKS: Record<Exclude<TopbarSection, null>, TopbarTab[]> = {
     .emp-codigo { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
 
     .dd-footer { padding: 8px 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); }
-
-    .tenant-item {
-      width: 100%; background: none; border: none;
-      font-family: 'Outfit', sans-serif; font-size: 12.5px;
-      text-align: left; cursor: pointer; color: var(--text);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .tenant-item.ativo { color: #6366f1; font-weight: 600; }
-    .tenant-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
-    .tenant-dot.ativo { background: #6366f1; }
-
-    .usuario-info { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.3; }
-    .usr-nome   { font-size: 12.5px; color: var(--text); font-weight: 500; }
-    .usr-perfil { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
   `],
   template: `
     <header class="topbar">
@@ -157,12 +115,7 @@ const TOPBAR_LINKS: Record<Exclude<TopbarSection, null>, TopbarTab[]> = {
       @if (currentTabs().length > 0) {
         <nav class="tabs hide-mobile">
           @for (tab of currentTabs(); track tab.route) {
-            <a
-              class="tab"
-              [class.hide-tablet]="tab.hideTablet"
-              [routerLink]="tab.route"
-              routerLinkActive="active"
-            >
+            <a class="tab" [routerLink]="tab.route" routerLinkActive="active">
               {{ tab.label }}
             </a>
           }
@@ -170,16 +123,8 @@ const TOPBAR_LINKS: Record<Exclude<TopbarSection, null>, TopbarTab[]> = {
       }
 
       <div class="topbar-right">
-
-        <!-- ── Filtro de Empresas ─────────────────────────── -->
-        <!--
-          Mostra quando:
-          - Usuário tem empresas no JWT (restrição definida), OU
-          - Usuário sem restrição e já carregou dados (empresasVisiveis > 0)
-        -->
         @if (filter.empresasVisiveis().length > 0) {
-          <div class="empresa-filter" [class.open]="dropdownEmpresa()">
-
+          <div class="empresa-filter">
             <button class="filter-btn" (click)="toggleEmpresa($event)">
               🏢
               <span class="hide-mobile">{{ labelEmpresas() }}</span>
@@ -191,7 +136,6 @@ const TOPBAR_LINKS: Record<Exclude<TopbarSection, null>, TopbarTab[]> = {
 
             @if (dropdownEmpresa()) {
               <div class="dropdown" (click)="$event.stopPropagation()">
-
                 <div class="dd-header">
                   <span class="dd-title">
                     Empresas
@@ -226,60 +170,10 @@ const TOPBAR_LINKS: Record<Exclude<TopbarSection, null>, TopbarTab[]> = {
                     {{ filter.selecionadas().size }} / {{ filter.empresasVisiveis().length }} selecionadas
                   }
                 </div>
-
               </div>
             }
           </div>
         }
-
-        <!-- ── Seletor de Tenant ──────────────────────────── 
-        @if (auth.isMultiTenant()) {
-          <div class="tenant-filter" [class.open]="dropdownTenant()">
-
-            <button class="filter-btn tenant-btn" (click)="toggleTenant($event)">
-              🏛
-              <span class="hide-mobile">{{ auth.tenantAtual()?.nome }}</span>
-              <span class="chevron" [class.rot]="dropdownTenant()">▾</span>
-            </button>
-
-            @if (dropdownTenant()) {
-              <div class="dropdown" (click)="$event.stopPropagation()">
-
-                <div class="dd-header">
-                  <span class="dd-title">Trocar contexto</span>
-                </div>
-
-                <div class="dd-list">
-                  @for (t of auth.tenants(); track t.id) {
-                    <button
-                      class="dd-item tenant-item"
-                      [class.ativo]="t.id === auth.tenantAtual()?.id"
-                      (click)="trocarTenant(t.id)"
-                    >
-                      <span class="tenant-dot" [class.ativo]="t.id === auth.tenantAtual()?.id"></span>
-                      {{ t.nome }}
-                    </button>
-                  }
-                </div>
-
-              </div>
-            }
-          </div>
-        }-->
-
-        <!-- ── Usuário ────────────────────────────────────── -->
-        @if (auth.usuario()) {
-          <div class="usuario-info hide-mobile">
-            <span class="usr-nome">{{ primeiroNome() }}</span>
-            <span
-              class="usr-perfil"
-              [style.color]="auth.usuario()!.perfil_cor || '#64748b'"
-            >
-              {{ auth.perfilNome() }}
-            </span>
-          </div>
-        }
-
       </div>
     </header>
   `,
@@ -289,17 +183,27 @@ export class TopbarComponent implements OnInit {
 
   readonly auth = inject(AuthService);
   readonly filter = inject(EmpresaFilterService);
+  readonly menuState = inject(MenuStateService);
   readonly router = inject(Router);
 
   readonly dropdownEmpresa = signal(false);
-  readonly dropdownTenant = signal(false);
+  readonly currentUrl = signal('');
 
-  readonly currentSection = signal<TopbarSection>(null);
+  readonly currentAplicacao = computed((): AplicacaoMenu | null => {
+    const url = this.currentUrl();
+    for (const sis of this.menuState.sistemas()) {
+      const ap = sis.aplicacoes.find(a => a.modulos.some(m => m.rota && url.startsWith(m.rota)));
+      if (ap) return ap;
+    }
+    return null;
+  });
 
   readonly currentTabs = computed(() => {
-    const section = this.currentSection();
-    if (!section) return [];
-    return TOPBAR_LINKS[section] ?? [];
+    const ap = this.currentAplicacao();
+    if (!ap) return [];
+    return ap.modulos
+      .filter(m => !!m.rota)
+      .map(m => ({ label: m.nome, route: m.rota as string }));
   });
 
   readonly labelEmpresas = computed(() => {
@@ -308,50 +212,23 @@ export class TopbarComponent implements OnInit {
     return `${qtd} empresa${qtd > 1 ? 's' : ''}`;
   });
 
-  readonly primeiroNome = computed(() =>
-    this.auth.usuario()?.nome?.split(' ')[0] ?? ''
-  );
-
   ngOnInit() {
-    this.currentSection.set(this.getSectionFromUrl(this.router.url));
+    this.currentUrl.set(this.router.url);
 
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
-        this.currentSection.set(this.getSectionFromUrl(this.router.url));
+        this.currentUrl.set(this.router.url);
       });
-  }
-
-  private getSectionFromUrl(url: string): TopbarSection {
-    if (url.startsWith('/financeiro')) return 'financeiro';
-    if (url.startsWith('/chamados')) return 'chamados';
-    if (url.startsWith('/admin')) return 'admin';
-    return null;
   }
 
   toggleEmpresa(e: Event) {
     e.stopPropagation();
-    this.dropdownTenant.set(false);
     this.dropdownEmpresa.update(v => !v);
-  }
-
-  toggleTenant(e: Event) {
-    e.stopPropagation();
-    this.dropdownEmpresa.set(false);
-    this.dropdownTenant.update(v => !v);
-  }
-
-  trocarTenant(tenantId: number) {
-    this.dropdownTenant.set(false);
-    this.auth.trocarTenant(tenantId).subscribe({
-      next: () => window.location.reload(),
-      error: (e: Error) => console.error(e.message),
-    });
   }
 
   @HostListener('document:click')
   fecharDropdowns() {
     this.dropdownEmpresa.set(false);
-    this.dropdownTenant.set(false);
   }
 }

@@ -63,7 +63,7 @@ export class CobrancasService {
   }
 
   // ─── Marcar status ────────────────────────────────────────────
-  marcarStatus(id: string, status: StatusCobranca) {
+  marcarStatus(id: number, status: StatusCobranca) {
     this._cobrancas.update((list) =>
       list.map((c) => c.id === id ? { ...c, status, tentativas: c.tentativas + 1 } : c)
     );

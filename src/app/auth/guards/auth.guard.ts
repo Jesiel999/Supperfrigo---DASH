@@ -1,44 +1,36 @@
 import { CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from '../services/auth.service';
-import { RecursoSistema, Permissao } from '../../shared/models/financeiro.models';
+import { RecursoSistema } from '../../shared/models/usuario.models';
 
 // ── Guard de autenticação ─────────────────────────────────────
 export const authGuard: CanActivateFn = () => {
   const auth   = inject(AuthService);
   const router = inject(Router);
   if (auth.logado()) return true;
-  router.navigate(['/login']);
+  router.navigate(['/home']);
   return false;
 };
 
 // ── Guard de admin (perfil contém 'admin') 
-export const adminInadimplenciaGuard: CanActivateFn = () => {
+export const adminSancesGuard: CanActivateFn = () => {
   const auth   = inject(AuthService);
   const router = inject(Router);
-  if (auth.isAdmin()) return true;
-  router.navigate(['/financeiro/inadimplencia']);
+  if (auth.logado()) return true;
+  router.navigate(['/sances']);
   return false;
 };
 
-export const adminPmpGuard: CanActivateFn = () => {
+export const adminSultsGuard: CanActivateFn = () => {
   const auth   = inject(AuthService);
   const router = inject(Router);
-  if (auth.isAdmin()) return true;
-  router.navigate(['/financeiro/pmp']);
-  return false;
-};
-
-export const adminPmrGuard: CanActivateFn = () => {
-  const auth   = inject(AuthService);
-  const router = inject(Router);
-  if (auth.isAdmin()) return true;
-  router.navigate(['/financeiro/pmr']);
+  if (auth.logado()) return true;
+  router.navigate(['/sults']);
   return false;
 };
 
 // ── Factory: guard para recurso específico 
-// Uso: canActivate: [authGuard, permissaoGuard('dashboard_inadimplencia')]
+// Uso: canActivate: [authGuard]
 export function permissaoGuard(
   recurso: RecursoSistema
 ): CanActivateFn {
@@ -47,7 +39,7 @@ export function permissaoGuard(
     const router = inject(Router);
 
     if (!auth.logado()) {
-      router.navigate(['/login']);
+      router.navigate(['/home']);
       return false;
     }
 

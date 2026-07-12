@@ -15,7 +15,7 @@ import { AuthService } from '../services/auth.service';
         <!-- Logo -->
         <div class="logo">
           <div class="logo-icon"></div>
-          <span class="logo-text">360<em>Core</em></span>
+          <span class="logo-text">Core<em>View</em></span>
         </div>
 
         <h1 class="title">Bem-vindo de volta</h1>
@@ -81,7 +81,7 @@ import { AuthService } from '../services/auth.service';
         </form>
 
         <p class="footer-text">
-          360Core © {{ ano }}
+          CoreView © {{ ano }}
         </p>
       </div>
     </div>
@@ -204,7 +204,7 @@ export class LoginComponent {
     this.carregando.set(true);
 
     this.auth.login({ username: this.username, password: this.password }).subscribe({
-      next: () => this.router.navigate(['/financeiro/inadimplencia']),
+      next: () => this.router.navigate(['/home']),
       error: (e: Error) => {
         this.erro.set(e.message);
         this.carregando.set(false);

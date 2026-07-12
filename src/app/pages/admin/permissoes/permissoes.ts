@@ -1,8 +1,20 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Perfil, Permissao } from '../../../shared/models/financeiro.models';
-import { PermissoesService } from '../../../shared/services/permissoes.service' ;
+import { Perfil, Permissao, CreatePerfilRequest } from '../../../shared/models/usuario.models';
+import { PermissoesService } from '../../../shared/services/permissoes.service';
+
+interface NovoPerfilForm {
+  nome: string;
+  descricao: string;
+  cor: string;
+}
+
+const CORES_DISPONIVEIS = [
+  '#a78bfa', '#38bdf8', '#34d399', '#fb923c',
+  '#f43f5e', '#facc15', '#818cf8', '#2dd4bf',
+];
+
 @Component({
   selector: 'app-admin-permissoes',
   imports: [FormsModule, CommonModule],
@@ -13,7 +25,7 @@ import { PermissoesService } from '../../../shared/services/permissoes.service' 
           <h1 class="page-title">Perfis & <span>Permissões</span></h1>
           <p class="page-sub">Gerencie o que cada perfil pode visualizar e fazer</p>
         </div>
-        <button class="btn-primary" (click)="novoPerfil()">+ Novo Perfil</button>
+        <button class="btn-primary" (click)="abrirModalNovoPerfil()">+ Novo Perfil</button>
       </div>
 
       @if (carregando()) {
@@ -102,7 +114,7 @@ import { PermissoesService } from '../../../shared/services/permissoes.service' 
                     <label class="ck" [class.checked]="perm.visualizar">
                       <input type="checkbox" [(ngModel)]="perm.visualizar"
                              [disabled]="isPerfilProtegido(perfilSelecionado()!.id)"
-                             (change)="onPermChange(perm, 'visualizar')"/>
+                             (change)="onPermChange(perm)"/>
                       <span class="ck-box"></span>
                     </label>
                   </div>
@@ -134,6 +146,56 @@ import { PermissoesService } from '../../../shared/services/permissoes.service' 
         </div>
       }
     </div>
+
+    <!-- ───── MODAL NOVO PERFIL ───── -->
+    @if (modalNovoPerfilAberto()) {
+      <div class="modal-overlay" (click)="fecharModalNovoPerfil()">
+        <div class="modal" style="max-width:440px" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h2 class="modal-title">+ Novo Perfil</h2>
+            <button class="modal-close" (click)="fecharModalNovoPerfil()">✕</button>
+          </div>
+
+          <div class="modal-body">
+            <div class="field" style="margin-bottom:14px">
+              <label class="lbl">Nome do perfil *</label>
+              <input class="inp" type="text" [(ngModel)]="novoPerfilForm.nome" placeholder="Ex.: Cobrança Externa"/>
+            </div>
+            <div class="field" style="margin-bottom:14px">
+              <label class="lbl">Descrição</label>
+              <input class="inp" type="text" [(ngModel)]="novoPerfilForm.descricao" placeholder="Ex.: Equipe terceirizada de cobrança"/>
+            </div>
+            <div class="field">
+              <label class="lbl">Cor</label>
+              <div class="cor-opts">
+                @for (c of coresDisponiveis; track c) {
+                  <div class="cor-opt" [style.background]="c"
+                       [class.selected]="novoPerfilForm.cor === c"
+                       (click)="novoPerfilForm.cor = c"></div>
+                }
+              </div>
+            </div>
+
+            @if (erroNovoPerfil()) {
+              <div class="alert-err">⚠️ {{ erroNovoPerfil() }}</div>
+            }
+
+            <p class="muted" style="font-size:12px;margin-top:14px">
+              O perfil será criado sem nenhuma permissão marcada — depois de criar,
+              selecione-o na lista e configure a matriz de permissões normalmente.
+            </p>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn-cancel" (click)="fecharModalNovoPerfil()">Cancelar</button>
+            <button class="btn-save" (click)="salvarNovoPerfil()" [disabled]="criandoPerfil()">
+              @if (criandoPerfil()) { <span class="spin"></span> Criando… }
+              @else { Criar perfil }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
 
     @if (toast()) {
       <div class="toast" [class]="'toast-' + toastType()">{{ toast() }}</div>
@@ -214,8 +276,32 @@ import { PermissoesService } from '../../../shared/services/permissoes.service' 
     .ck.checked .ck-box::after{content:'✓';color:white;font-size:11px;font-weight:700;line-height:1}
     .ck:hover .ck-box{border-color:rgba(167,139,250,.5)}
 
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px}
+    .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border)}
+    .modal-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700}
+    .modal-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0}
+    .modal-body{padding:20px 24px;display:flex;flex-direction:column;gap:0}
+    .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .lbl{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.3px}
+
+    .cor-opts{display:flex;gap:8px;flex-wrap:wrap}
+    .cor-opt{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s}
+    .cor-opt:hover{transform:scale(1.1)}
+    .cor-opt.selected{border-color:var(--text);transform:scale(1.15)}
+
+    .alert-err{margin-top:14px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);color:#f43f5e;font-size:12.5px;padding:10px 14px;border-radius:8px}
+
+    .btn-cancel{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;font-family:'Outfit',sans-serif;padding:8px 18px;cursor:pointer}
+    .btn-save{background:linear-gradient(135deg,#a78bfa,#38bdf8);border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;font-family:'Outfit',sans-serif;padding:8px 20px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity .2s}
+    .btn-save:disabled{opacity:.5;cursor:not-allowed}
+
     .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
     @keyframes spin{to{transform:rotate(360deg)}}
+
+    .muted{color:var(--muted)}
 
     .toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;animation:slideIn .3s ease;box-shadow:0 8px 24px rgba(0,0,0,.4)}
     @keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -235,6 +321,12 @@ export class AdminPermissoesComponent implements OnInit {
   readonly toast     = signal('');
   readonly toastType = signal<'success'|'error'>('success');
 
+  readonly coresDisponiveis = CORES_DISPONIVEIS;
+  readonly modalNovoPerfilAberto = signal(false);
+  readonly criandoPerfil = signal(false);
+  readonly erroNovoPerfil = signal('');
+  novoPerfilForm: NovoPerfilForm = this.emptyNovoPerfilForm();
+
   ngOnInit() {
     this.carregarDados();
   }
@@ -243,12 +335,8 @@ export class AdminPermissoesComponent implements OnInit {
     this.carregando.set(true);
     this.erroGeral.set('');
 
-    // Carregar perfis
     this.permissoesService.getPerfis().subscribe({
       next: (response: any) => {
-        console.log('PERFIS', response.perfis);
-        console.log('PERMISSOES', response.perfis[0]?.permissoes);
-
         this.perfis.set(response.perfis);
 
         if (response.perfis.length > 0) {
@@ -264,7 +352,6 @@ export class AdminPermissoesComponent implements OnInit {
       }
     });
 
-    // Carregar categorias
     this.permissoesService.getCategorias().subscribe({
       next: (response) => {
         this.categorias.set(response.categorias);
@@ -283,19 +370,19 @@ export class AdminPermissoesComponent implements OnInit {
     return this.perfilSelecionado()?.permissoes.filter(p => p.categoria === cat) ?? [];
   }
 
-  onPermChange(perm: Permissao, campo: 'visualizar') {
+  onPermChange(perm: Permissao) {
     if (!perm.visualizar) {
-      perm.criar = false; 
-      perm.editar = false; 
+      perm.criar = false;
+      perm.editar = false;
       perm.excluir = false;
     }
   }
 
   marcarTodos(val: boolean) {
     this.perfilSelecionado()?.permissoes.forEach(p => {
-      p.visualizar = val; 
-      p.criar = val; 
-      p.editar = val; 
+      p.visualizar = val;
+      p.criar = val;
+      p.editar = val;
       p.excluir = val;
     });
   }
@@ -303,11 +390,11 @@ export class AdminPermissoesComponent implements OnInit {
   marcarCategoria(cat: string, val: boolean) {
     this.perfilSelecionado()?.permissoes
       .filter(p => p.categoria === cat)
-      .forEach(p => { 
-        p.visualizar = val; 
-        p.criar = val; 
-        p.editar = val; 
-        p.excluir = val; 
+      .forEach(p => {
+        p.visualizar = val;
+        p.criar = val;
+        p.editar = val;
+        p.excluir = val;
       });
   }
 
@@ -317,7 +404,6 @@ export class AdminPermissoesComponent implements OnInit {
 
     this.salvando.set(true);
 
-    // Construir objeto de permissões para enviar
     const permissoesMap: Record<string, any> = {};
     perfil.permissoes.forEach(p => {
       permissoesMap[p.recurso] = {
@@ -337,9 +423,7 @@ export class AdminPermissoesComponent implements OnInit {
 
     this.permissoesService.atualizarPerfil(perfil.id, updateData).subscribe({
       next: (perfilAtualizado) => {
-        this.perfis.update(list =>
-          list.map(p => p.id === perfilAtualizado.id ? perfilAtualizado : p)
-        );
+        this.perfis.update(list => list.map(p => p.id === perfilAtualizado.id ? perfilAtualizado : p));
         this.perfilSelecionado.set(perfilAtualizado);
         this.showToast('Permissões salvas com sucesso!', 'success');
         this.salvando.set(false);
@@ -352,11 +436,54 @@ export class AdminPermissoesComponent implements OnInit {
     });
   }
 
-  novoPerfil() {
-    this.showToast('Funcionalidade de criar novo perfil em desenvolvimento', 'error');
+  // ── Novo perfil ──────────────────────────────────────────────
+  abrirModalNovoPerfil() {
+    this.novoPerfilForm = this.emptyNovoPerfilForm();
+    this.erroNovoPerfil.set('');
+    this.modalNovoPerfilAberto.set(true);
   }
 
-  excluirPerfil(id: string) {
+  fecharModalNovoPerfil() {
+    this.modalNovoPerfilAberto.set(false);
+  }
+
+  salvarNovoPerfil() {
+    if (!this.novoPerfilForm.nome.trim()) {
+      this.erroNovoPerfil.set('Informe um nome para o perfil.');
+      return;
+    }
+
+    this.criandoPerfil.set(true);
+    this.erroNovoPerfil.set('');
+
+    const data: CreatePerfilRequest = {
+      nome: this.novoPerfilForm.nome.trim(),
+      descricao: this.novoPerfilForm.descricao.trim(),
+      cor: this.novoPerfilForm.cor,
+      permissoes: {}, // criado sem permissões — configura depois na matriz
+    };
+
+    this.permissoesService.criarPerfil(data).subscribe({
+      next: (perfilCriado) => {
+        this.perfis.update(list => [...list, perfilCriado]);
+        this.perfilSelecionado.set(perfilCriado);
+        this.showToast('Perfil criado com sucesso!', 'success');
+        this.criandoPerfil.set(false);
+        this.fecharModalNovoPerfil();
+      },
+      error: (err) => {
+        console.error('Erro:', err);
+        this.erroNovoPerfil.set(err.error?.detail || 'Erro ao criar perfil');
+        this.criandoPerfil.set(false);
+      }
+    });
+  }
+
+  private emptyNovoPerfilForm(): NovoPerfilForm {
+    return { nome: '', descricao: '', cor: CORES_DISPONIVEIS[0] };
+  }
+
+  excluirPerfil(id: number) {
     if (!confirm('Tem certeza que deseja deletar este perfil?')) {
       return;
     }
@@ -376,28 +503,21 @@ export class AdminPermissoesComponent implements OnInit {
     });
   }
 
-  temPermissao(
-  perfilId: string,
-  recurso: string,
-  acao: keyof Permissao
-  ): boolean {
+  temPermissao(perfilId: number, recurso: string, acao: keyof Permissao): boolean {
     const perfil = this.perfis().find(p => p.id === perfilId);
-
     if (!perfil) return false;
 
-    const permissao = perfil.permissoes.find(
-      p => p.recurso === recurso
-    );
-
+    const permissao = perfil.permissoes.find(p => p.recurso === recurso);
     return Boolean(permissao?.[acao]);
   }
 
-  isPerfilProtegido(perfilId: any) {
-  return String(perfilId).startsWith('perfil_');
-}
+  isPerfilProtegido(perfilId: number): boolean {
+    const perfil = this.perfis().find(p => p.id === perfilId);
+    return !!perfil?.is_admin;
+  }
 
   private showToast(msg: string, type: 'success'|'error') {
-    this.toast.set(msg); 
+    this.toast.set(msg);
     this.toastType.set(type);
     setTimeout(() => this.toast.set(''), 3000);
   }

@@ -1,31 +1,25 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Usuario, CreateUsuarioRequest, UpdateUsuarioRequest  } from '../../../shared/models/financeiro.models';
+import {
+  UsuarioAdmin, CreateUsuarioRequest, UpdateUsuarioRequest, Empresas
+} from '../../../shared/models/usuario.models';
 import { UsuariosService } from '../../../shared/services/usuarios.service';
-
-type Role = 'admin' | 'gestor' | 'analista' | 'operador';
+import { PermissoesService } from '../../../shared/services/permissoes.service';
+import { EmpresasService } from '../../../shared/services/empresas.service';
 
 interface UsuarioForm {
-  id: string; username: string; nome: string; email: string;
-  telefone: string; password: string; role: Role; perfil_id: string; ativo: boolean;
+  id: number;
+  username: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  password: string;
+  perfil_id: number;
+  ativo: boolean;
 }
 
-interface PerfilOpcao { id: string; nome: string; cor: string; }
-
-const PERFIS_MOCK: PerfilOpcao[] = [
-  { id:'perfil_admin',    nome:'Administrador',      cor:'#f43f5e' },
-  { id:'perfil_gestor',   nome:'Gestor Financeiro',  cor:'#34d399' },
-  { id:'perfil_analista', nome:'Analista',            cor:'#38bdf8' },
-  { id:'perfil_operador', nome:'Operador',            cor:'#fb923c' },
-];
-
-const ROLE_INFO: Record<Role, { label: string; cor: string }> = {
-  admin:    { label:'Admin',    cor:'#f43f5e' },
-  gestor:   { label:'Gestor',   cor:'#34d399' },
-  analista: { label:'Analista', cor:'#38bdf8' },
-  operador: { label:'Operador', cor:'#fb923c' },
-};
+interface PerfilOpcao { id: number; nome: string; cor: string; }
 
 @Component({
   selector: 'app-admin-usuarios',
@@ -68,12 +62,11 @@ const ROLE_INFO: Record<Role, { label: string; cor: string }> = {
           <div class="filters">
             <input class="input-f" type="text" placeholder="🔍 Buscar nome ou e-mail…"
                    [(ngModel)]="busca" (ngModelChange)="aplicarFiltro()"/>
-            <select class="sel-f" [(ngModel)]="filtroRole" (ngModelChange)="aplicarFiltro()">
-              <option value="">Todos os perfis</option>
-              <option value="admin">Admin</option>
-              <option value="gestor">Gestor</option>
-              <option value="analista">Analista</option>
-              <option value="operador">Operador</option>
+            <select class="sel-f" [(ngModel)]="filtroPerfilId" (ngModelChange)="aplicarFiltro()">
+              <option [ngValue]="''">Todos os perfis</option>
+              @for (p of perfisDisponiveis(); track p.id) {
+                <option [ngValue]="p.id">{{ p.nome }}</option>
+              }
             </select>
             <select class="sel-f" [(ngModel)]="filtroAtivo" (ngModelChange)="aplicarFiltro()">
               <option value="">Todos</option>
@@ -95,7 +88,7 @@ const ROLE_INFO: Record<Role, { label: string; cor: string }> = {
                 <tr [class.inativo]="!u.ativo">
                   <td>
                     <div class="user-cell">
-                      <div class="avatar-sm" [style.background]="avatarGrad(u.role)">
+                      <div class="avatar-sm" [style.background]="avatarGrad(u.perfil_id)">
                         {{ initials(u.nome) }}
                       </div>
                       <div>
@@ -106,8 +99,11 @@ const ROLE_INFO: Record<Role, { label: string; cor: string }> = {
                   </td>
                   <td class="mono">{{ u.username }}</td>
                   <td>
-                    <span class="role-badge" [style.background]="roleBg(u.role)" [style.color]="ROLE_INFO[u.role].cor" [style.border-color]="roleBorder(u.role)">
-                      {{ ROLE_INFO[u.role].label }}
+                    <span class="perfil_id-badge"
+                          [style.background]="perfilBg(u.perfil_id)"
+                          [style.color]="u.perfil_cor"
+                          [style.border-color]="perfilBorder(u.perfil_id)">
+                      {{ u.perfil_nome || 'Sem perfil' }}
                     </span>
                   </td>
                   <td>
@@ -116,14 +112,11 @@ const ROLE_INFO: Record<Role, { label: string; cor: string }> = {
                     </div>
                     <span class="status-text" [class.ativo]="u.ativo">{{ u.ativo ? 'Ativo' : 'Inativo' }}</span>
                   </td>
-                  <td class="mono muted">{{ u.ultimo_acesso }}</td>
+                  <td class="mono muted">{{ formatarDataAcesso(u.ultimo_acesso) }}</td>
                   <td>
                     <div class="act-row">
                       <button class="btn-icon" title="Editar" (click)="editarUsuario(u)">✏️</button>
                       <button class="btn-icon" title="Resetar senha" (click)="resetSenha(u)">🔑</button>
-                      @if (u.role !== 'admin') {
-                        <button class="btn-icon danger" title="Desativar" (click)="toggleAtivo(u)">🗑️</button>
-                      }
                     </div>
                   </td>
                 </tr>
@@ -167,19 +160,12 @@ const ROLE_INFO: Record<Role, { label: string; cor: string }> = {
                   <input class="inp" type="password" [(ngModel)]="form.password" placeholder="Mínimo 8 caracteres"/>
                 </div>
               }
-              <div class="field">
-                <label class="lbl">Nível de acesso *</label>
-                <select class="inp" [(ngModel)]="form.role">
-                  <option value="admin">Administrador</option>
-                  <option value="gestor">Gestor Financeiro</option>
-                  <option value="analista">Analista</option>
-                  <option value="operador">Operador</option>
-                </select>
-              </div>
+
+              <!-- Perfil de permissões -->
               <div class="field full">
                 <label class="lbl">Perfil de permissões *</label>
                 <div class="perfil-opts">
-                  @for (p of perfisDisponiveis; track p.id) {
+                  @for (p of perfisDisponiveis(); track p.id) {
                     <div class="perfil-opt" [class.selected]="form.perfil_id === p.id"
                          (click)="form.perfil_id = p.id">
                       <div class="perfil-dot" [style.background]="p.cor"></div>
@@ -187,7 +173,43 @@ const ROLE_INFO: Record<Role, { label: string; cor: string }> = {
                       @if (form.perfil_id === p.id) { <span class="check">✓</span> }
                     </div>
                   }
+                  @if (perfisDisponiveis().length === 0) {
+                    <span class="muted" style="font-size:12.5px">Nenhum perfil cadastrado ainda.</span>
+                  }
                 </div>
+              </div>
+
+              <!-- Empresas com acesso — CAMPO IRMÃO, não mais aninhado -->
+              <div class="field full">
+                <label class="lbl">Empresas com acesso *</label>
+
+                <div class="perfil-opt" [class.selected]="todasEmpresas()" (click)="todasEmpresas.set(true)">
+                  <div class="perfil-dot" style="background:#34d399"></div>
+                  <span>Todas as empresas (sem restrição)</span>
+                  @if (todasEmpresas()) { <span class="check">✓</span> }
+                </div>
+                <div class="perfil-opt" [class.selected]="!todasEmpresas()" (click)="todasEmpresas.set(false)" style="margin-top:6px">
+                  <div class="perfil-dot" style="background:#fb923c"></div>
+                  <span>Empresas específicas</span>
+                  @if (!todasEmpresas()) { <span class="check">✓</span> }
+                </div>
+
+                @if (!todasEmpresas()) {
+                  <div class="dd-list" style="border:1px solid var(--border);border-radius:8px;margin-top:8px">
+                    @for (emp of empresasDisponiveis(); track emp.codigo_empresa) {
+                      <label class="dd-item">
+                        <input type="checkbox" class="chk"
+                               [checked]="empresasSelecionadas().has(emp.codigo_empresa)"
+                               (change)="toggleEmpresa(emp.codigo_empresa)" />
+                        <span class="emp-nome">{{ emp.nome_empresa }}</span>
+                        <span class="emp-codigo">{{ emp.codigo_empresa }}</span>
+                      </label>
+                    }
+                    @if (empresasDisponiveis().length === 0) {
+                      <span class="muted" style="font-size:12.5px;padding:8px 14px;display:block">Nenhuma empresa cadastrada.</span>
+                    }
+                  </div>
+                }
               </div>
             </div>
 
@@ -282,7 +304,7 @@ const ROLE_INFO: Record<Role, { label: string; cor: string }> = {
     .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
     .muted{color:var(--muted)}
 
-    .role-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;border:1px solid}
+    .perfil_id-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;border:1px solid}
 
     .status-toggle{display:inline-flex;width:34px;height:18px;border-radius:20px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;transition:background .2s;vertical-align:middle;margin-right:6px}
     .status-toggle.ativo{background:rgba(52,211,153,.3)}
@@ -334,56 +356,79 @@ const ROLE_INFO: Record<Role, { label: string; cor: string }> = {
     @keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
     .toast-success{background:#14532d;border:1px solid #34d399;color:#34d399}
     .toast-error{background:#450a0a;border:1px solid #f43f5e;color:#f43f5e}
+
+    /* Reaproveitado do topbar para a lista de empresas */
+    .dd-list{max-height:240px;overflow-y:auto;padding:6px 0}
+    .dd-list::-webkit-scrollbar{width:4px}
+    .dd-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+    .dd-item{display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;transition:background .12s}
+    .dd-item:hover{background:rgba(255,255,255,.04)}
+    .chk{width:15px;height:15px;accent-color:#f43f5e;cursor:pointer;flex-shrink:0}
+    .emp-nome{font-size:12.5px;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .emp-codigo{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;flex-shrink:0}
   `],
 })
 export class AdminUsuariosComponent implements OnInit {
   protected readonly usuariosService = inject(UsuariosService);
-
-  readonly ROLE_INFO = ROLE_INFO;
-  readonly perfisDisponiveis = PERFIS_MOCK;
+  protected readonly permissoesService = inject(PermissoesService);
+  protected readonly empresasService = inject(EmpresasService);
 
   // State
-  private readonly _usuarios = signal<Usuario[]>([]);
+  private readonly _usuarios = signal<UsuarioAdmin[]>([]);
+  readonly perfisDisponiveis = signal<PerfilOpcao[]>([]);
+
+  // Empresas
+  readonly empresasDisponiveis = signal<Empresas[]>([]);
+  readonly todasEmpresas = signal(true);
+  readonly empresasSelecionadas = signal<Set<number>>(new Set());
+
   readonly carregando = signal(false);
   readonly erroGeral = signal('');
-  readonly modalAberto     = signal(false);
-  readonly modalSenhaAberto= signal(false);
-  readonly editando        = signal(false);
-  readonly salvando        = signal(false);
-  readonly erroForm        = signal('');
-  readonly sucessoForm     = signal('');
-  readonly toast           = signal('');
-  readonly toastType       = signal<'success'|'error'>('success');
-  readonly usuarioSenha    = signal<Usuario | null>(null);
+  readonly modalAberto      = signal(false);
+  readonly modalSenhaAberto = signal(false);
+  readonly editando         = signal(false);
+  readonly salvando         = signal(false);
+  readonly erroForm         = signal('');
+  readonly sucessoForm      = signal('');
+  readonly toast            = signal('');
+  readonly toastType        = signal<'success'|'error'>('success');
+  readonly usuarioSenha     = signal<UsuarioAdmin | null>(null);
+
   novaSenha = '';
-  busca = ''; filtroRole = ''; filtroAtivo = '';
+  busca = '';
+  filtroPerfilId: number | '' = '';
+  filtroAtivo = '';
 
   form: UsuarioForm = this.emptyForm();
 
   readonly usuariosFiltrados = computed(() => {
-    const b = this.busca.toLowerCase(); const r = this.filtroRole; const a = this.filtroAtivo;
+    const b = this.busca.toLowerCase();
+    const perfilId = this.filtroPerfilId;
+    const a = this.filtroAtivo;
     return (this._usuarios() ?? []).filter(u =>
       (!b || u.nome.toLowerCase().includes(b) || u.email.toLowerCase().includes(b)) &&
-      (!r || u.role === r) &&
+      (perfilId === '' || u.perfil_id === perfilId) &&
       (a === '' || String(u.ativo) === a)
     );
   });
 
   readonly stats = computed(() => [
-    { label:'Total cadastros', num: this._usuarios().length,                              cor:'#a78bfa' },
-    { label:'Ativos',          num: this._usuarios().filter(u => u.ativo).length,         cor:'#34d399' },
-    { label:'Inativos',        num: this._usuarios().filter(u => !u.ativo).length,        cor:'#f43f5e' },
-    { label:'Administradores', num: this._usuarios().filter(u => u.role === 'admin').length, cor:'#fb923c' },
+    { label:'Total cadastros', num: this._usuarios().length,                               cor:'#a78bfa' },
+    { label:'Ativos',          num: this._usuarios().filter(u => u.ativo).length,          cor:'#34d399' },
+    { label:'Inativos',        num: this._usuarios().filter(u => !u.ativo).length,         cor:'#f43f5e' },
+    { label:'Administradores', num: this._usuarios().filter(u => u.is_admin).length,       cor:'#fb923c' },
   ]);
 
   ngOnInit() {
     this.carregarUsuarios();
+    this.carregarPerfis();
+    this.carregarEmpresas();
   }
 
   carregarUsuarios() {
     this.carregando.set(true);
     this.erroGeral.set('');
-    
+
     this.usuariosService.getUsuarios().subscribe({
       next: (response: any) => {
         this._usuarios.set(response.usuarios || []);
@@ -397,28 +442,67 @@ export class AdminUsuariosComponent implements OnInit {
     });
   }
 
+  carregarPerfis() {
+    this.permissoesService.getPerfis().subscribe({
+      next: (response: any) => {
+        const opcoes: PerfilOpcao[] = (response.perfis || []).map((p: any) => ({
+          id: p.id, nome: p.nome, cor: p.cor
+        }));
+        this.perfisDisponiveis.set(opcoes);
+      },
+      error: (err) => console.error('Erro ao carregar perfis:', err)
+    });
+  }
+
+  carregarEmpresas() {
+    this.empresasService.listarTodas().subscribe({
+      next: (r) => this.empresasDisponiveis.set(r.empresas),
+      error: (e) => console.error('Erro ao carregar empresas:', e),
+    });
+  }
+
   abrirModal() {
     this.form = this.emptyForm();
     this.editando.set(false);
     this.erroForm.set(''); this.sucessoForm.set('');
+    this.todasEmpresas.set(true);
+    this.empresasSelecionadas.set(new Set());
     this.modalAberto.set(true);
   }
 
-  editarUsuario(u: Usuario) {
-    this.form = { 
+  editarUsuario(u: UsuarioAdmin) {
+    this.form = {
       id: u.id,
       username: u.username,
       nome: u.nome,
       email: u.email,
       telefone: u.telefone || '',
       password: '',
-      role: u.role,
       perfil_id: u.perfil_id,
       ativo: u.ativo
     };
+
     this.editando.set(true);
-    this.erroForm.set(''); this.sucessoForm.set('');
+    this.erroForm.set('');
+    this.sucessoForm.set('');
     this.modalAberto.set(true);
+
+    this.todasEmpresas.set(true);
+    this.empresasSelecionadas.set(new Set());
+    this.usuariosService.getEmpresasUsuario(u.id).subscribe({
+      next: (r) => {
+        this.todasEmpresas.set(r.sem_restricao);
+        this.empresasSelecionadas.set(new Set(r.codigos));
+      },
+      error: (e) => console.error('Erro ao carregar empresas do usuário:', e),
+    });
+  }
+
+  toggleEmpresa(codigo: number) {
+    const copia = new Set(this.empresasSelecionadas());
+    if (copia.has(codigo)) copia.delete(codigo);
+    else                   copia.add(codigo);
+    this.empresasSelecionadas.set(copia);
   }
 
   fecharModal() { this.modalAberto.set(false); }
@@ -436,26 +520,27 @@ export class AdminUsuariosComponent implements OnInit {
       this.erroForm.set('Selecione um perfil de permissões.');
       return;
     }
+    if (!this.todasEmpresas() && this.empresasSelecionadas().size === 0) {
+      this.erroForm.set('Selecione ao menos uma empresa, ou marque "Todas as empresas".');
+      return;
+    }
 
     this.salvando.set(true);
     this.erroForm.set('');
 
     if (this.editando()) {
-      // Atualizar
       const updateData: UpdateUsuarioRequest = {
         nome: this.form.nome,
         email: this.form.email,
         telefone: this.form.telefone,
-        role: this.form.role,
         perfil_id: this.form.perfil_id,
         ativo: this.form.ativo
       };
 
       this.usuariosService.atualizarUsuario(this.form.id, updateData).subscribe({
         next: (usuario) => {
-          this._usuarios.update(list => 
-            list.map(u => u.id === usuario.id ? usuario : u)
-          );
+          this._usuarios.update(list => list.map(u => u.id === usuario.id ? usuario : u));
+          this.salvarEmpresasDoUsuario(usuario.id);
           this.showToast('Usuário atualizado com sucesso!', 'success');
           this.salvando.set(false);
           this.fecharModal();
@@ -467,20 +552,19 @@ export class AdminUsuariosComponent implements OnInit {
         }
       });
     } else {
-      // Criar
       const createData: CreateUsuarioRequest = {
         username: this.form.username,
         nome: this.form.nome,
         email: this.form.email,
         telefone: this.form.telefone,
         password: this.form.password,
-        role: this.form.role,
         perfil_id: this.form.perfil_id
       };
 
       this.usuariosService.criarUsuario(createData).subscribe({
         next: (usuario) => {
           this._usuarios.update(list => [usuario, ...list]);
+          this.salvarEmpresasDoUsuario(usuario.id);
           this.showToast('Usuário criado com sucesso!', 'success');
           this.salvando.set(false);
           this.fecharModal();
@@ -494,24 +578,29 @@ export class AdminUsuariosComponent implements OnInit {
     }
   }
 
-  toggleAtivo(u: Usuario) {
-    if (u.role === 'admin') return;
-    
+  private salvarEmpresasDoUsuario(usuarioId: number) {
+    const codigos = this.todasEmpresas() ? [] : Array.from(this.empresasSelecionadas());
+    this.usuariosService.atualizarEmpresasUsuario(usuarioId, codigos).subscribe({
+      error: (e) => console.error('Erro ao salvar empresas do usuário:', e),
+    });
+  }
+
+  toggleAtivo(u: UsuarioAdmin) {
+    if (u.is_admin) return; 
+
     this.usuariosService.toggleAtivo(u.id, !u.ativo).subscribe({
       next: (usuarioAtualizado) => {
-        this._usuarios.update(list => 
-          list.map(x => x.id === u.id ? usuarioAtualizado : x)
-        );
+        this._usuarios.update(list => list.map(x => x.id === u.id ? usuarioAtualizado : x));
         this.showToast(u.ativo ? 'Usuário desativado.' : 'Usuário ativado!', 'success');
       },
       error: (err) => {
         console.error('Erro:', err);
-        this.showToast('Erro ao atualizar status do usuário', 'error');
+        this.showToast(err.error?.detail || 'Erro ao atualizar status do usuário', 'error');
       }
     });
   }
 
-  resetSenha(u: Usuario) {
+  resetSenha(u: UsuarioAdmin) {
     this.usuarioSenha.set(u);
     this.novaSenha = '';
     this.modalSenhaAberto.set(true);
@@ -545,37 +634,40 @@ export class AdminUsuariosComponent implements OnInit {
   aplicarFiltro() { /* filtros são reativos via computed */ }
 
   private emptyForm(): UsuarioForm {
-    return { id:'', username:'', nome:'', email:'', telefone:'', password:'', role:'operador', perfil_id:'perfil_operador', ativo:true };
+    return { id: 0, username:'', nome:'', email:'', telefone:'', password:'', perfil_id: 0, ativo:true };
   }
 
   initials(nome: string) { return nome.split(' ').map(x => x[0]).slice(0, 2).join('').toUpperCase(); }
-  
-  avatarGrad(role: string) {
-    const grads: Record<string, string> = {
-      admin:'linear-gradient(135deg,#f43f5e,#fb923c)',
-      gestor:'linear-gradient(135deg,#34d399,#38bdf8)',
-      analista:'linear-gradient(135deg,#38bdf8,#a78bfa)',
-      operador:'linear-gradient(135deg,#a78bfa,#7c3aed)',
-    };
-    return grads[role] ?? 'linear-gradient(135deg,#64748b,#475569)';
+
+  private readonly PALETA = [
+    '244,63,94',   // rosa
+    '52,211,153',  // verde
+    '56,189,248',  // azul
+    '251,146,60',  // laranja
+    '167,139,250', // roxo
+  ];
+
+  avatarGrad(perfilId: number) {
+    const rgb = this.perfilRgb(perfilId);
+    return `linear-gradient(135deg, rgba(${rgb},1), rgba(${rgb},.6))`;
   }
 
-  roleBg(role: string)     { return `rgba(${this.roleRgb(role)},.1)`; }
-  roleBorder(role: string) { return `rgba(${this.roleRgb(role)},.25)`; }
-  
-  private roleRgb(role: string) {
-    const m: Record<string,string> = { admin:'244,63,94', gestor:'52,211,153', analista:'56,189,248', operador:'251,146,60' };
-    return m[role] ?? '100,116,139';
+  perfilBg(perfilId: number)     { return `rgba(${this.perfilRgb(perfilId)},.1)`; }
+  perfilBorder(perfilId: number) { return `rgba(${this.perfilRgb(perfilId)},.25)`; }
+
+  private perfilRgb(perfilId: number) {
+    if (!perfilId) return '100,116,139';
+    return this.PALETA[perfilId % this.PALETA.length];
   }
 
-  formatarDataAcesso(data: string | undefined): string {
+  formatarDataAcesso(data: string | undefined | null): string {
     if (!data) return 'Nunca';
     try {
       const d = new Date(data);
       const agora = new Date();
       const diff = agora.getTime() - d.getTime();
       const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
-      
+
       if (dias === 0) return 'Hoje';
       if (dias === 1) return 'Ontem';
       if (dias < 7) return `Há ${dias} dias`;

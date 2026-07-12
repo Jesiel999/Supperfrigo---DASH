@@ -8,12 +8,14 @@ import {
   PmpApiItem,
   PmrApiItem,
   RespostaEnvio,
+} from '../models/financeiro.models';
+import {
   Usuario,
   Perfil,
   Permissao,
   CreateUsuarioRequest,
   UpdateUsuarioRequest,
-} from '../models/financeiro.models';
+} from '../models/usuario.models'
  
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -42,7 +44,7 @@ export class ApiService {
     }
  
     return this.http.get<ApiResponse<Usuario>>(
-      `${this.base}/usuarios/api/usuarios`,
+      `${this.base}/usuarios/api`,
       { params }
     );
   }
@@ -50,9 +52,9 @@ export class ApiService {
   /**
    * Obtém um usuário específico
    */
-  getUsuario(id: string) {
+  getUsuario(id: number) {
     return this.http.get<Usuario>(
-      `${this.base}/api/usuarios/${id}`
+      `${this.base}/usuarios/api${id}`
     );
   }
  
@@ -61,7 +63,7 @@ export class ApiService {
    */
   criarUsuario(data: CreateUsuarioRequest) {
     return this.http.post<Usuario>(
-      `${this.base}/usuarios/api/usuarios`,
+      `${this.base}/usuarios/api`,
       data
     );
   }
@@ -69,9 +71,9 @@ export class ApiService {
   /**
    * Atualiza um usuário existente
    */
-  atualizarUsuario(id: string, data: UpdateUsuarioRequest) {
+  atualizarUsuario(id: number, data: UpdateUsuarioRequest) {
     return this.http.put<Usuario>(
-      `${this.base}/api/usuarios/${id}`,
+      `${this.base}/usuarios/api/${id}`,
       data
     );
   }
@@ -79,9 +81,9 @@ export class ApiService {
   /**
    * Ativa ou desativa um usuário
    */
-  toggleAtivoUsuario(id: string, ativo: boolean) {
+  toggleAtivoUsuario(id: number, ativo: boolean) {
     return this.http.patch<Usuario>(
-      `${this.base}/api/usuarios/${id}/ativo`,
+      `${this.base}/usuarios/api/${id}/ativo`,
       { ativo }
     );
   }
@@ -89,9 +91,9 @@ export class ApiService {
   /**
    * Reseta a senha de um usuário
    */
-  resetarSenhaUsuario(id: string, novaSenha: string) {
+  resetarSenhaUsuario(id: number, novaSenha: string) {
     return this.http.post<{ message: string }>(
-      `${this.base}/api/usuarios/${id}/reset-senha`,
+      `${this.base}/usuarios/api/${id}/reset-senha`,
       { nova_senha: novaSenha }
     );
   }
@@ -99,9 +101,9 @@ export class ApiService {
   /**
    * Deleta um usuário (soft delete)
    */
-  deletarUsuario(id: string) {
+  deletarUsuario(id: number) {
     return this.http.delete<{ message: string }>(
-      `${this.base}/api/usuarios/${id}`
+      `${this.base}/usuarios/api/${id}`
     );
   }
  
@@ -112,16 +114,16 @@ export class ApiService {
    */
   getPerfis() {
     return this.http.get<ApiResponse<Perfil>>(
-      `${this.base}/permissoes/api/permissoes/perfis`
+      `${this.base}/permissoes/api/perfis`
     );
   }
  
   /**
    * Obtém um perfil específico com permissões
    */
-  getPerfil(id: string) {
+  getPerfil(id: number) {
     return this.http.get<Perfil & { permissoes: Permissao[] }>(
-      `${this.base}/permissoes/api/permissoes/perfis/${id}`
+      `${this.base}/permissoes/api/perfis/${id}`
     );
   }
  
@@ -135,7 +137,7 @@ export class ApiService {
     permissoes: { [recurso: string]: { visualizar: boolean; criar: boolean; editar: boolean; excluir: boolean } };
   }) {
     return this.http.post<Perfil>(
-      `${this.base}/permissoes/api/permissoes/perfis`,
+      `${this.base}/permissoes/api/perfis`,
       data
     );
   }
@@ -143,14 +145,14 @@ export class ApiService {
   /**
    * Atualiza um perfil existente
    */
-  atualizarPerfil(id: string, data: {
+  atualizarPerfil(id: number, data: {
     nome: string;
     descricao: string;
     cor: string;
     permissoes: { [recurso: string]: { visualizar: boolean; criar: boolean; editar: boolean; excluir: boolean } };
   }) {
     return this.http.put<Perfil>(
-      `${this.base}/permissoes/api/permissoes/perfis/${id}`,
+      `${this.base}/permissoes/api/perfis/${id}`,
       data
     );
   }
@@ -158,9 +160,9 @@ export class ApiService {
   /**
    * Deleta um perfil
    */
-  deletarPerfil(id: string) {
+  deletarPerfil(id: number) {
     return this.http.delete<{ message: string }>(
-      `${this.base}/permissoes/api/permissoes/perfis/${id}`
+      `${this.base}/permissoes/api/perfis/${id}`
     );
   }
  
@@ -174,7 +176,7 @@ export class ApiService {
         label: string;
         categoria: string;
       }>;
-    }>(`${this.base}/permissoes/api/permissoes/recursos`);
+    }>(`${this.base}/permissoes/api/recursos`);
   }
  
   /**
@@ -183,7 +185,7 @@ export class ApiService {
   getCategorias() {
     return this.http.get<{
       categorias: string[];
-    }>(`${this.base}/permissoes/api/permissoes/categorias`);
+    }>(`${this.base}/permissoes/api/categorias`);
   }
 
   getInadimplencia(dataInicio?: string, dataFim?: string) {

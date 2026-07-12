@@ -6,11 +6,10 @@ import { environment } from '../../../environments/environment';
 import {
   AuthResponse,
   LoginPayload,
-  Permissao,
   RecursoSistema,
   TenantInfo,
   Usuario,
-} from '../../shared/models/financeiro.models';
+} from '../../shared/models/usuario.models';
 
 const TOKEN_KEY  = 'ff_token';
 const USER_KEY   = 'ff_usuario';
@@ -23,12 +22,8 @@ export class AuthService {
   private readonly http   = inject(HttpClient);
   private readonly router = inject(Router);
 
-  private readonly _token   = signal<string | null>(
-    localStorage.getItem(TOKEN_KEY)
-  );
-  private readonly _usuario = signal<Usuario | null>(
-    this._parsarUsuarioStorage()
-  );
+  private readonly _token   = signal<string | null>(localStorage.getItem(TOKEN_KEY));
+  private readonly _usuario = signal<Usuario | null>(this._parsarUsuarioStorage());
 
   readonly token   = this._token.asReadonly();
   readonly usuario = this._usuario.asReadonly();
@@ -42,25 +37,16 @@ export class AuthService {
   });
 
   // ── Empresas autorizadas pelo JWT ─────────────────────────────
-  // [] = sem restrição (usuário vê todas)
   readonly empresasAutorizadas = computed(() =>
     this._usuario()?.empresas ?? []
   );
-
   // ── Tenants acessíveis ────────────────────────────────────────
   readonly tenants = computed(() => this._usuario()?.tenants ?? []);
   readonly isMultiTenant = computed(() => this.tenants().length > 1);
 
   // ── Perfil ────────────────────────────────────────────────────
-  readonly perfilNome = computed(() =>
-    this._usuario()?.role ?? this._usuario()?.role ?? ''
-  );
-  readonly isAdmin = computed(() => {
-    const u = this._usuario();
-    if (!u) return false;
-    const perfil = (u.role ?? u.role ?? '').toLowerCase();
-    return perfil.includes('admin');
-  });
+  readonly perfilNome = computed(() => this._usuario()?.perfil_nome ?? '');
+  readonly isAdmin     = computed(() => this._usuario()?.is_admin ?? false);
 
   // ── Login ─────────────────────────────────────────────────────
   login(payload: LoginPayload) {
@@ -81,9 +67,7 @@ export class AuthService {
       .pipe(
         tap(res => this._persistir(res)),
         catchError(err =>
-          throwError(() => new Error(
-            err.error?.detail ?? err.message ?? 'Erro ao fazer login'
-          ))
+          throwError(() => new Error(err.error?.detail ?? err.message ?? 'Erro ao fazer login'))
         )
       );
   }
@@ -91,15 +75,10 @@ export class AuthService {
   // ── Troca de tenant ───────────────────────────────────────────
   trocarTenant(tenantId: number) {
     return this.http
-      .post<AuthResponse>(
-        `${environment.apiUrl}/auth/trocar-tenant`,
-        { tenant_id: tenantId }
-      )
+      .post<AuthResponse>(`${environment.apiUrl}/auth/trocar-tenant`, { tenant_id: tenantId })
       .pipe(
         tap(res => this._persistir(res)),
-        catchError(err =>
-          throwError(() => new Error(err.error?.detail ?? 'Erro ao trocar tenant'))
-        )
+        catchError(err => throwError(() => new Error(err.error?.detail ?? 'Erro ao trocar tenant')))
       );
   }
 
@@ -118,32 +97,19 @@ export class AuthService {
   getToken() { return this._token(); }
 
   // ── Verificação de permissão ──────────────────────────────────
-  temPermissao(recurso: RecursoSistema) {
+  // permissoes chega como { modulo: ['visualizar','editar', ...] }
+  temPermissao(recurso: RecursoSistema, acao: 'visualizar' | 'criar' | 'editar' | 'excluir' = 'visualizar'): boolean {
     const u = this._usuario();
     if (!u) return false;
     if (this.isAdmin()) return true;
 
-    // Sistema novo: permissoes é um objeto { modulo: [acoes] }
-    const permissoes = u.permissoes;
-    if (permissoes && typeof permissoes === 'object' && !Array.isArray(permissoes)) {
-      const acoes = (permissoes as Record<string, string[]>)[recurso] ?? [];
-
-    }
-
-    // Sistema antigo: permissoes é array [{ recurso, acoes[] }]
-    if (Array.isArray(permissoes)) {
-      const entry = (permissoes as any[]).find(p => p.recurso === recurso);
-
-    }
-
-    return false;
+    const acoes = u.permissoes?.[recurso] ?? [];
+    return acoes.includes(acao);
   }
 
   // ── Persiste resposta do backend ──────────────────────────────
   private _persistir(res: AuthResponse) {
-    const usuario = this._normalizarUsuario(
-      (res as any).usuarios
-    );
+    const usuario = this._normalizarUsuario((res as any).usuario);
 
     localStorage.setItem(TOKEN_KEY, res.access_token);
     localStorage.setItem(USER_KEY, JSON.stringify(usuario));
@@ -154,24 +120,24 @@ export class AuthService {
   }
 
   // ── Normaliza resposta — garante campos obrigatórios ─────────
-  // Evita quebrar o template quando vêm campos nulos do sistema antigo
   private _normalizarUsuario(u: any): Usuario {
     return {
-      id:           u.id ?? '',
-      username:     u.username ?? '',
-      nome:         u.nome ?? '',
-      email:        u.email ?? '',
+      id:           u.id,
+      username:     u.username,
+      nome:         u.nome,
+      email:        u.email,
 
-      tenant_id:    u.tenant_id ?? 0,
-      tenant_nome:  u.tenant_nome ?? '',
-      tenant_slug:  u.tenant_slug ?? '',
+      tenant_id:    u.tenant_id,
+      tenant_nome:  u.tenant_nome,
+      tenant_slug:  u.tenant_slug,
 
-      perfil_id:    u.perfil_id ?? 0,
+      perfil_id:    u.perfil_id,
+      perfil_nome:  u.perfil_nome ?? '',
       perfil_cor:   u.perfil_cor ?? '',
+      is_admin:     !!u.is_admin,
 
       telefone: u.telefone ?? null,
       ativo: u.ativo ?? true,
-      role: u.role ?? 'operador',
       ultimo_acesso: u.ultimo_acesso ?? null,
 
       empresas: Array.isArray(u.empresas) ? u.empresas : [],
@@ -181,7 +147,6 @@ export class AuthService {
     };
   }
 
-  // ── Carrega usuário do localStorage com normalização ──────────
   private _parsarUsuarioStorage(): Usuario | null {
     try {
       const raw = localStorage.getItem(USER_KEY);

@@ -1,8 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CurrencyPipe } from '@angular/common';
-import { CobrancasService } from '../../shared/services/cobrancas.service';
-import { Cobranca, CanalCobranca } from '../../shared/models/financeiro.models';
+import { CobrancasService } from '../../../../shared/services/cobrancas.service';
+import { Cobranca, CanalCobranca } from '../../../../shared/models/financeiro.models';
 
 @Component({
   selector: 'app-cobrancas',
@@ -250,13 +250,13 @@ import { Cobranca, CanalCobranca } from '../../shared/models/financeiro.models';
                       <!-- E-mail -->
                       <button class="btn-email" title="Enviar E-mail"
                               (click)="enviarEmail(c)"
-                              [disabled]="svc.enviando() === c.id">
+                              [disabled]="svc.enviando() === Number(c.id)">
                         📧
                       </button>
                       <!-- Ambos -->
                       <button class="btn-ambos" title="Enviar por ambos os canais"
                               (click)="enviarAmbos(c)"
-                              [disabled]="svc.enviando() === c.id">
+                              [disabled]="svc.enviando() === Number(c.id)">
                         ⚡
                       </button>
                       <!-- Marcar pago -->
@@ -525,7 +525,7 @@ export class CobrancasComponent {
     this.showToast(`WhatsApp + E-mail enviados para ${c.nome_pessoa}`, 'success');
   }
 
-  marcarPago(id: string) {
+  marcarPago(id: number) {
     this.svc.marcarStatus(id, 'pago');
     this.showToast('Cliente marcado como pago ✅', 'success');
   }

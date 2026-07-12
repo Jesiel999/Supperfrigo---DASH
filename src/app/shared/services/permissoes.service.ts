@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { EmpresaFilterService } from './empresa-filter.service';
 import { ApiService } from './api.service';
 import { BehaviorSubject } from 'rxjs';
-import { Permissao, PermissaoRecurso, PermissoesResponse, Perfil, CreatePerfilRequest, UpdatePerfilRequest } from '../models/financeiro.models';
+import { Permissao, PermissaoRecurso, PermissoesResponse, Perfil, CreatePerfilRequest, UpdatePerfilRequest } from '../models/usuario.models';
 
 
 @Injectable({
@@ -25,7 +25,7 @@ export class PermissoesService {
   /**
    * Busca um perfil específico
    */
-  getPerfil(id: string) {
+  getPerfil(id: number) {
     return this.api.getPerfil(id);
   }
 
@@ -39,14 +39,14 @@ export class PermissoesService {
   /**
    * Atualiza um perfil existente
    */
-  atualizarPerfil(id: string, data: UpdatePerfilRequest) {
+  atualizarPerfil(id: number, data: UpdatePerfilRequest) {
     return this.api.atualizarPerfil(id, data);
   }
 
   /**
    * Deleta um perfil
    */
-  deletarPerfil(id: string) {
+  deletarPerfil(id: number) {
     return this.api.deletarPerfil(id);
   }
 

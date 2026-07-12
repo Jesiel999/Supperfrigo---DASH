@@ -61,7 +61,7 @@ export class PmpPmrService {
     let resultado = brutos;
 
     if (empresas.size > 0) {
-      resultado = resultado.filter(c => empresas.has(String(c.id_empresa)));
+      resultado = resultado.filter(c => empresas.has(Number(c.id_empresa)));
     }
 
     if (status !== 'todos') {
@@ -76,7 +76,7 @@ export class PmpPmrService {
     const empresas = this.empresaFilter.selecionadas();
 
     if (empresas.size === 0) return brutos;
-    return brutos.filter(c => empresas.has(String(c.id_empresa)));
+    return brutos.filter(c => empresas.has(Number(c.id_empresa)));
   });
 
   // ─── PMR filtrado por empresa
@@ -88,7 +88,7 @@ export class PmpPmrService {
     let resultado = brutos;
 
     if (empresas.size > 0) {
-      resultado = resultado.filter(c => empresas.has(String(c.id_empresa)));
+      resultado = resultado.filter(c => empresas.has(Number(c.id_empresa)));
     }
 
     if (status !== 'todos') {
@@ -103,7 +103,7 @@ export class PmpPmrService {
     const empresas = this.empresaFilter.selecionadas();
 
     if (empresas.size === 0) return brutos;
-    return brutos.filter(c => empresas.has(String(c.id_empresa)));
+    return brutos.filter(c => empresas.has(Number(c.id_empresa)));
   });
 
   // ─── KPI PMP
@@ -380,8 +380,8 @@ export class PmpPmrService {
          const empresasUnicas = Array.from(
           new Map(
             pmpBrutos.map(c => [
-              String(c.id_empresa),
-              { codigo: String(c.id_empresa), nome: c.nome_empresa }
+              Number(c.id_empresa),
+              { codigo: Number(c.id_empresa), nome: c.nome_empresa }
             ])
           ).values()
         ).sort((a, b) => a.nome.localeCompare(b.nome));

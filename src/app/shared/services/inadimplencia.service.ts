@@ -57,7 +57,7 @@ export class InadimplenciaService {
     const semBaixa = brutos.filter(c => !c.data_baixa);
 
     if (empresas.size === 0) return semBaixa;
-    return semBaixa.filter(c => empresas.has(String(c.id_empresa)));
+    return semBaixa.filter(c => empresas.has(Number(c.id_empresa)));
   });
 
   private readonly _inadimplentesAnt = computed(() => {
@@ -67,7 +67,7 @@ export class InadimplenciaService {
     const semBaixa = brutos.filter(c => !c.data_baixa);
 
     if (empresas.size === 0) return semBaixa;
-    return semBaixa.filter(c => empresas.has(String(c.id_empresa)));
+    return semBaixa.filter(c => empresas.has(Number(c.id_empresa)));
   });
 
   private readonly _comBaixa = computed(() => {
@@ -75,7 +75,7 @@ export class InadimplenciaService {
     const empresas = this.empresaFilter.selecionadas();
 
     if (empresas.size === 0) return brutos;
-    return brutos.filter(c => empresas.has(String(c.id_empresa)));
+    return brutos.filter(c => empresas.has(Number(c.id_empresa)));
   });
 
   private readonly _comBaixaAnt = computed(() => {
@@ -83,7 +83,7 @@ export class InadimplenciaService {
     const empresas = this.empresaFilter.selecionadas();
 
     if (empresas.size === 0) return brutos;
-    return brutos.filter(c => empresas.has(String(c.id_empresa)));
+    return brutos.filter(c => empresas.has(Number(c.id_empresa)));
   });
 
   // ─── KPIs — computed reativo ──────────────────────────────────
@@ -273,23 +273,9 @@ export class InadimplenciaService {
       anterior: this.api.getInadimplencia(fmt(inicioAnterior), fmt(fimAnterior)),
     }).subscribe({
       next: ({ atual: resAtual, anterior: resAnterior }) => {
-
         const brutos    = (resAtual.data    ?? []).map((i: InadimplenciaApiItem) => this.mapApiItem(i));
         const brutosAnt = (resAnterior.data ?? []).map((i: InadimplenciaApiItem) => this.mapApiItem(i));
 
-        // Popula o filtro de empresas para o dropdown
-        const empresasUnicas = Array.from(
-          new Map(
-            brutos.map(c => [
-              String(c.id_empresa),
-              { codigo: String(c.id_empresa), nome: c.nome_empresa }
-            ])
-          ).values()
-        ).sort((a, b) => a.nome.localeCompare(b.nome));
-
-        this.empresaFilter.setDisponiveis(empresasUnicas);
-
-        // Grava brutos — os computeds reagem automaticamente
         this._todosBrutos.set(brutos);
         this._todosBrutosAnt.set(brutosAnt);
 
@@ -305,7 +291,7 @@ export class InadimplenciaService {
   // ─── Mapear item da API ───────────────────────────────────────
   private mapApiItem(item: InadimplenciaApiItem): ClienteInadimplente {
     return {
-      id:                       String(item.id_pessoa),
+      id:                       Number(item.id_pessoa),
       id_empresa:               item.id_empresa,
       nome_empresa:             item.nome_empresa,
       id_pessoa:                item.id_pessoa,
@@ -336,7 +322,7 @@ export class InadimplenciaService {
   setBusca(v: string)        { this.busca.set(v); }
   setFiltroStatus(v: string) { this.filtroStatus.set(v); }
   setPeriodo(v: string)      { this.periodo.set(v); }
-  cobrarCliente(id: string)  { console.log('Cobrar:', id); }
+  cobrarCliente(id: number)  { console.log('Cobrar:', id); }
 
   // ─── Helpers privados ────────────────────────────────────────
   private _var(atual: number, anterior: number): number {

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, adminInadimplenciaGuard, adminPmpGuard } from './auth/guards/auth.guard';
+import { authGuard, permissaoGuard } from './auth/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -7,18 +7,27 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/login/login').then(m => m.LoginComponent),
   },
   {
+    path: 'home',
+    canActivate: [authGuard],
+    loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),
+    children: [
+      { path: '', loadComponent: () => import('./pages/home').then(m => m.HomeComponent) },
+    ],
+  },
+  {
     path: 'financeiro',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),
     children: [
-      { path: 'inadimplencia', loadComponent: () => import('./pages/sances/financeiro/inadimplencia/inadimplencia').then(m => m.InadimplenciaComponent) },
-      { path: 'cobrancas',     loadComponent: () => import('./pages/sances/financeiro/cobrancas/cobrancas').then(m => m.CobrancasComponent) },
-      { path: 'dre',           loadComponent: () => import('./pages/sances/financeiro/dre/dre').then(m => m.DreComponent) },
-      { path: 'pmp',           loadComponent: () => import('./pages/sances/financeiro/pmp-pmr/pmp-pmr').then(m => m.PmpPmrComponent) },
-      { path: 'contas-receber',loadComponent: () => import('./pages/sances/financeiro/contas-receber/contas-receber').then(m => m.ContasReceberComponent) },
-      { path: 'contas-pagar',  loadComponent: () => import('./pages/sances/financeiro/contas-pagar/contas-pagar').then(m => m.ContasPagarComponent) },
-      { path: 'fluxo-caixa',  loadComponent: () => import('./pages/sances/financeiro/fluxo-caixa/fluxo-caixa').then(m => m.FluxoCaixaComponent) },
-      { path: 'aging-report',  loadComponent: () => import('./pages/sances/financeiro/aging-report/aging-report').then(m => m.AgingReportComponent) },
+      { path: 'inadimplencia',   canActivate: [permissaoGuard('inadimplencia')],   loadComponent: () => import('./pages/sances/financeiro/inadimplencia/inadimplencia').then(m => m.InadimplenciaComponent) },
+      { path: 'cobrancas',       canActivate: [permissaoGuard('cobrancas')],       loadComponent: () => import('./pages/sances/financeiro/cobrancas/cobrancas').then(m => m.CobrancasComponent) },
+      { path: 'dre',             canActivate: [permissaoGuard('dre')],             loadComponent: () => import('./pages/sances/financeiro/dre/dre').then(m => m.DreComponent) },
+      { path: 'pmp_pmr',         canActivate: [permissaoGuard('pmp_pmr')],         loadComponent: () => import('./pages/sances/financeiro/pmp_pmr/pmp_pmr').then(m => m.PmpPmrComponent) },
+      { path: 'receber',         canActivate: [permissaoGuard('receber')],         loadComponent: () => import('./pages/sances/financeiro/receber/receber').then(m => m.ContasReceberComponent) },
+      { path: 'pagar',           canActivate: [permissaoGuard('pagar')],           loadComponent: () => import('./pages/sances/financeiro/pagar/pagar').then(m => m.ContasPagarComponent) },
+      { path: 'credito',         canActivate: [permissaoGuard('credito')],         loadComponent: () => import('./pages/sances/financeiro/credito/credito').then(m => m.CreditoComponent) },
+      { path: 'fluxo_caixa',     canActivate: [permissaoGuard('fluxo_caixa')],     loadComponent: () => import('./pages/sances/financeiro/fluxo_caixa/fluxo_caixa').then(m => m.FluxoCaixaComponent) },
+      { path: 'aging_report',    canActivate: [permissaoGuard('aging_report')],    loadComponent: () => import('./pages/sances/financeiro/aging-report/aging-report').then(m => m.AgingReportComponent) },
       { path: '', redirectTo: 'inadimplencia', pathMatch: 'full' },
     ],
   },
@@ -27,30 +36,29 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),
     children: [
-      { path: 'movimentacao', loadComponent: () => import('./pages/sances/estoque/movimentacao/movimentacao').then(m => m.MovimentacaoComponent) },
+      { path: 'movimentacao', canActivate: [permissaoGuard('estoque_movimentacao')], loadComponent: () => import('./pages/sances/estoque/movimentacao/estoque_movimentacao').then(m => m.MovimentacaoComponent) },
+      { path: '', redirectTo: 'movimentacao', pathMatch: 'full' },
     ],
   },
   {
     path: 'chamados',
-    canActivate: [authGuard, adminInadimplenciaGuard],
+    canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),
     children: [
-      { path: 'geral',    loadComponent: () => import('./pages/sults/chamados/geral').then(m => m.ChamadosGeralComponent) },
+      { path: 'geral', canActivate: [permissaoGuard('chamados_geral')], loadComponent: () => import('./pages/sults/chamados/geral').then(m => m.ChamadosGeralComponent) },
       { path: '', redirectTo: 'geral', pathMatch: 'full' },
     ],
   },
   {
     path: 'admin',
-    canActivate: [authGuard, adminInadimplenciaGuard],
+    canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),
     children: [
-      { path: 'usuarios',    loadComponent: () => import('./pages/admin/usuarios/usuarios').then(m => m.AdminUsuariosComponent) },
-      { path: 'permissoes',  loadComponent: () => import('./pages/admin/permissoes/permissoes').then(m => m.AdminPermissoesComponent) },
+      { path: 'usuarios',    canActivate: [permissaoGuard('usuarios')],    loadComponent: () => import('./pages/admin/usuarios/usuarios').then(m => m.AdminUsuariosComponent) },
+      { path: 'permissoes',  canActivate: [permissaoGuard('permissoes')],  loadComponent: () => import('./pages/admin/permissoes/permissoes').then(m => m.AdminPermissoesComponent) },
       { path: '', redirectTo: 'usuarios', pathMatch: 'full' },
     ],
   },
-  { path: '', redirectTo: 'financeiro/inadimplencia', pathMatch: 'full' },
-  { path: '', redirectTo: 'financeiro/pmp', pathMatch: 'full' },
-  { path: '', redirectTo: 'financeiro/pmr', pathMatch: 'full' },
+  { path: '', redirectTo: 'home', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' },
 ];

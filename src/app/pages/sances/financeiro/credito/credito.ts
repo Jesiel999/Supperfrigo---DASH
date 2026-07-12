@@ -1,12 +1,12 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'app-cobranca',
+  selector: 'app-credito',
   template: `
     <div class="placeholder">
       <div class="icon">📈</div>
-      <h2>Cobranças</h2>
-      <p>Cobranças</p>
+      <h2>Crédito</h2>
+      <p>Crédito</p>
       <span class="badge">Em desenvolvimento</span>
     </div>
   `,
@@ -25,4 +25,5 @@ import { Component } from '@angular/core';
     }
   `],
 })
-export class CobrancasComponent {}
+export class CreditoComponent {
+}

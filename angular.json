@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "360core": {
+    "CoreView": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -19,7 +19,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/360core",
+            "outputPath": "dist/CoreView",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [],
@@ -49,8 +49,8 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {
-            "production": { "buildTarget": "360core:build:production" },
-            "development": { "buildTarget": "360core:build:development" }
+            "production": { "buildTarget": "CoreView:build:production" },
+            "development": { "buildTarget": "CoreView:build:development" }
           },
           "defaultConfiguration": "development"
         }

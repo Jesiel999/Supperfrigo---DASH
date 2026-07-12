@@ -4,7 +4,7 @@ type TopbarTab = {
   hideTablet?: boolean;
 };
 
-type TopbarSection = 'financeiro' | 'chamados' | 'admin' | null;
+type TopbarSection = 'financeiro' | 'estoque' |'chamados' | 'admin' | null;
 
 
 const TOPBAR_LINKS: Record<Exclude<TopbarSection, null>, TopbarTab[]> = {
@@ -19,11 +19,12 @@ const TOPBAR_LINKS: Record<Exclude<TopbarSection, null>, TopbarTab[]> = {
     { label: 'Aging',         route: '/financeiro/aging-report',   hideTablet: true },
   ],
 
+  estoque: [
+    { label: 'Movimentações', route: '/estoque/movimentacoes' },
+  ],
+
   chamados: [
     { label: 'Geral', route: '/chamados/geral' },
-    // depois você pode adicionar:
-    // { label: 'SLA', route: '/chamados/sla' },
-    // { label: 'Atendentes', route: '/chamados/atendentes' },
   ],
 
   admin: [

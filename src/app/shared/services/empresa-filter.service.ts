@@ -1,161 +1,245 @@
 import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { AuthService } from '../../auth/services/auth.service';
-import { EmpresaAutorizada } from '../models/financeiro.models';
+import { EmpresaAutorizada } from '../models/usuario.models';
+import { EmpresasService } from './empresas.service';
 
 const STORAGE_KEY = 'ff_empresas_selecionadas';
 
 @Injectable({ providedIn: 'root' })
 export class EmpresaFilterService {
   private readonly auth = inject(AuthService);
+  private readonly empresasService = inject(EmpresasService);
 
-  // ── Empresas vindas dos DADOS da API (populado após carregar) ──
   private readonly _dosDados = signal<EmpresaAutorizada[]>([]);
+  private readonly _selecionadas = signal<Set<number>>(new Set());
 
-  // ── Empresas do JWT — disponíveis IMEDIATAMENTE após login ────
-  // Vazio no JWT = usuário sem restrição (vê tudo)
-  readonly autorizadasNoJwt = computed(() =>
-    this.auth.empresasAutorizadas()   // EmpresaAutorizada[] do token
-  );
+  readonly selecionadas = this._selecionadas.asReadonly();
+
+  private _catalogoCarregado = false;
+  private _customizado = false;
+
+  readonly autorizadasNoJwt = computed(() => this.auth.empresasAutorizadas());
 
   readonly semRestricao = computed(() =>
     this.autorizadasNoJwt().length === 0
   );
 
-  // ── Lista visível no dropdown ──────────────────────────────────
   readonly empresasVisiveis = computed((): EmpresaAutorizada[] => {
-    if (!this.semRestricao()) {
-      return this.autorizadasNoJwt();
-    }
-    return this._dosDados();
+    return this.semRestricao()
+      ? this._dosDados()
+      : this.autorizadasNoJwt();
   });
 
-  // ── Selecionadas pelo usuário ──────────────────────────────────
-  // IMPORTANTE: aqui o Set guarda EXATAMENTE os códigos marcados.
-  // Set vazio = literalmente "nenhuma empresa marcada", nunca "todas".
-  // "Todas marcadas" é apenas quando o Set contém todos os códigos visíveis.
-  private readonly _selecionadas = signal<Set<string>>(new Set());
-  readonly selecionadas = this._selecionadas.asReadonly();
+  readonly todasSelecionadas = computed(() => {
+    const visiveis = this.empresasVisiveis();
+    const sel = this._selecionadas();
 
-  // Enquanto o usuário não mexer manualmente, a seleção acompanha
-  // automaticamente a lista de empresas visíveis (ou seja, "todas" por padrão).
-  private _customizado = false;
+    return visiveis.length > 0 && sel.size === visiveis.length;
+  });
 
   constructor() {
-    // Persiste automaticamente ao mudar seleção, mas só depois que o
-    // usuário customizou algo manualmente (senão ficaríamos gravando
-    // o estado "padrão" toda vez que a lista de empresas mudasse).
+
+    /**
+     * Salva no LocalStorage somente quando houver login.
+     */
     effect(() => {
+      if (!this.auth.logado()) return;
+
       const ids = Array.from(this._selecionadas());
+
       if (this._customizado) {
-        localStorage.setItem(this._storageKey(), JSON.stringify(ids));
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify(ids)
+        );
       }
     });
 
-    // Sempre que a lista de empresas visíveis mudar (JWT carregou,
-    // ou os dados da API chegaram) E o usuário ainda não tiver
-    // customizado a seleção, marca todas automaticamente.
+    /**
+     * Seleciona todas automaticamente quando o usuário
+     * ainda não personalizou o filtro.
+     */
     effect(() => {
+      if (!this.auth.logado()) return;
+
       const visiveis = this.empresasVisiveis();
+
       if (!this._customizado) {
-        this._selecionadas.set(new Set(visiveis.map(e => e.codigo)));
+        this._selecionadas.set(
+          new Set(visiveis.map(e => e.codigo))
+        );
       }
     });
 
-    // Ao trocar de tenant, recarrega a seleção salva daquele tenant
-    // (ou volta ao padrão "todas" se não houver nada salvo).
+    /**
+     * Quando troca de tenant ou realiza login.
+     */
     effect(() => {
+
+      if (!this.auth.logado()) {
+        this.clear(false);
+        return;
+      }
+
       this.auth.tenantAtual();
+
       this._recarregarDoStorage();
+    });
+
+    /**
+     * Carrega catálogo apenas uma vez.
+     */
+    effect(() => {
+
+      if (!this.auth.logado()) {
+        this._catalogoCarregado = false;
+        return;
+      }
+
+      if (
+        this.semRestricao() &&
+        !this._catalogoCarregado
+      ) {
+        this._catalogoCarregado = true;
+
+        this.empresasService.listarTodas().subscribe({
+
+          next: (r) => {
+
+            const empresas: EmpresaAutorizada[] = r.empresas.map(e => ({
+              codigo: Number(e.codigo_empresa),
+              nome: e.nome_empresa
+            }));
+
+            this.setDisponiveis(empresas);
+
+          },
+
+          error: err => {
+            console.error(err);
+            this._catalogoCarregado = false;
+          }
+
+        });
+      }
     });
   }
 
-  // ── Chamado pelo InadimplenciaService após receber dados ──────
-  // Só importa quando o usuário NÃO tem restrição no JWT
+  clear(removerStorage = true): void {
+
+    this._catalogoCarregado = false;
+    this._customizado = false;
+
+    this._dosDados.set([]);
+    this._selecionadas.set(new Set());
+
+    if (removerStorage) {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+
   setDisponiveis(empresas: EmpresaAutorizada[]): void {
-    const atual = this._dosDados();
-    const iguais =
-      atual.length === empresas.length &&
-      atual.every((e, i) => e.codigo === empresas[i].codigo);
-    if (iguais) return;
 
     this._dosDados.set(empresas);
 
-    if (this._customizado) {
-      // Remove seleções que não existem mais nos dados
-      const codigos = new Set(empresas.map(e => e.codigo));
-      const nova = new Set(
-        Array.from(this._selecionadas()).filter(c => codigos.has(c))
+    if (!this._customizado) {
+      this._selecionadas.set(
+        new Set(empresas.map(e => e.codigo))
       );
-      this._selecionadas.set(nova);
+      return;
     }
-    // Se não customizado, o effect acima já re-seleciona "todas" automaticamente
+
+    const permitidas = new Set(empresas.map(e => e.codigo));
+
+    this._selecionadas.set(
+      new Set(
+        [...this._selecionadas()].filter(c => permitidas.has(c))
+      )
+    );
   }
 
-  // ── Computed: "todas selecionadas" ────────────────────────────
-  readonly todasSelecionadas = computed(() => {
-    const sel = this._selecionadas();
-    const visiveis = this.empresasVisiveis();
-    return visiveis.length > 0 && sel.size >= visiveis.length;
-  });
-
-  estaSelecionada(codigo: string): boolean {
+  estaSelecionada(codigo: number): boolean {
     return this._selecionadas().has(codigo);
   }
 
-  // ── Retorna códigos para enviar como param na API ─────────────
-  // [] = sem filtro de empresa (todas selecionadas, API usa o JWT p/ decidir)
-  codigosSelecionados(): string[] {
-    if (this.todasSelecionadas()) return [];
-    return Array.from(this._selecionadas());
-  }
+  codigosSelecionados(): number[] {
 
-  // ── Toggle individual ─────────────────────────────────────────
-  toggle(codigo: string): void {
-    this._customizado = true;
-    const copia = new Set(this._selecionadas());
-    if (copia.has(codigo)) copia.delete(codigo);
-    else                   copia.add(codigo);
-    this._selecionadas.set(copia);
-  }
-
-  // ── Selecionar/desmarcar todas ─────────────────────────────────
-  toggleTodas(): void {
-    this._customizado = true;
     if (this.todasSelecionadas()) {
-    } else {
-      this._selecionadas.set(
-        new Set(this.empresasVisiveis().map(e => e.codigo))
-      );
+      return [];
     }
+
+    return [...this._selecionadas()];
   }
 
-  // ── Filtra lista local por empresa selecionada ────────────────
-  filtrar<T extends { codigo_empresa: string }>(items: T[]): T[] {
-    if (this.todasSelecionadas()) return items;
+  toggle(codigo: number): void {
+
+    this._customizado = true;
+
+    const nova = new Set(this._selecionadas());
+
+    if (nova.has(codigo)) {
+      nova.delete(codigo);
+    } else {
+      nova.add(codigo);
+    }
+
+    this._selecionadas.set(nova);
+  }
+
+  toggleTodas(): void {
+
+    this._customizado = true;
+
+    if (this.todasSelecionadas()) {
+      this._selecionadas.set(new Set());
+      return;
+    }
+
+    this._selecionadas.set(
+      new Set(
+        this.empresasVisiveis().map(e => e.codigo)
+      )
+    );
+  }
+
+  filtrar<T extends { codigo_empresa: number }>(items: T[]): T[] {
+
+    if (this.todasSelecionadas()) {
+      return items;
+    }
+
     const sel = this._selecionadas();
+
     return items.filter(i => sel.has(i.codigo_empresa));
   }
 
-  // ── Storage com chave isolada por tenant ──────────────────────
-  private _storageKey(): string {
-    const tid = this.auth.tenantAtual()?.id ?? 'global';
-    return `${STORAGE_KEY}`;
-  }
-
   private _recarregarDoStorage(): void {
-    try {
-      const raw = localStorage.getItem(this._storageKey());
-      if (raw === null) {
-        // Nada salvo para esse tenant: volta ao padrão "todas"
-        this._customizado = false;
-        this._selecionadas.set(new Set(this.empresasVisiveis().map(e => e.codigo)));
-        return;
-      }
-      const codigos = JSON.parse(raw) as string[];
-      this._customizado = true;
-      this._selecionadas.set(new Set(codigos));
-    } catch {
+
+    const raw = localStorage.getItem(STORAGE_KEY);
+
+    if (!raw) {
+
       this._customizado = false;
+
+      this._selecionadas.set(
+        new Set(this.empresasVisiveis().map(e => e.codigo))
+      );
+
+      return;
+    }
+
+    try {
+
+      this._customizado = true;
+
+      this._selecionadas.set(
+        new Set(JSON.parse(raw))
+      );
+
+    } catch {
+
+      this._customizado = false;
+
       this._selecionadas.set(new Set());
     }
   }
