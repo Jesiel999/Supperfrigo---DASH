@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { InadimplenciaService }       from '../../../../shared/services/inadimplencia.service';
 import { LineChartComponent } from '../../../../shared/components/inadimplencia/line-chart/line-chart';
 import { KpiCardComponent }           from '../../../../shared/components/inadimplencia/kpi-card/kpi-card';
@@ -6,6 +6,11 @@ import { KpiCardInvertComponent }           from '../../../../shared/components/
 import { DonutChartComponent }        from '../../../../shared/components/inadimplencia/donut-chart/donut-chart';
 import { TopDevedoresBarComponent }   from '../../../../shared/components/inadimplencia/line-bar/line-bar';
 import { DataTableComponent }         from '../../../../shared/components/inadimplencia/data-table/data-table';
+
+interface HelpItem {
+  titulo: string;
+  descricao: string;
+}
 
 @Component({
   selector: 'app-inadimplencia',
@@ -51,6 +56,73 @@ import { DataTableComponent }         from '../../../../shared/components/inadim
               (change)="onDataFim($any($event.target).value)"
             />
             <button class="btn-filtrar" (click)="recarregar()">Filtrar</button>
+            <button
+                class="help-btn"
+                (click)="abrirAjuda()"
+                title="Ajuda do Dashboard">
+
+                <span>?</span>
+
+            </button>
+            @if (ajudaAberta()) {
+              <div class="help-backdrop" (click)="fecharAjuda()">
+                  <div class="help-modal" (click)="$event.stopPropagation()">
+                      <div class="help-header">
+                          <div>
+                              <div class="help-badge">
+                                  📊 Dashboard Financeiro
+                              </div>
+                              <h2>Como interpretar este Dashboard</h2>
+                              <p>
+                                  Entenda o significado de cada indicador apresentado
+                                  nesta tela e como utilizá-los na tomada de decisão.
+                              </p>
+                          </div>
+                          <button class="close-btn" (click)="fecharAjuda()">
+                              ✕
+                          </button>
+                      </div>
+                      <div class="help-body">
+                          @for(item of ajuda; track item.titulo){
+                              <div class="help-card">
+                                  <div class="help-icon">
+                                      @switch (item.titulo) {
+                                          @case ("Total Inadimplente") { 💰 }
+                                          @case ("Quantidade de Títulos") { 📄 }
+                                          @case ("Ticket Médio") { 💵 }
+                                          @case ("Clientes Inadimplentes") { 👥 }
+                                          @case ("Maiores Devedores") { 🏆 }
+                                          @case ("Faixa de Atraso") { ⏳ }
+                                          @case ("Evolução Diária") { 📈 }
+                                          @case ("Última Atualização") { 🔄 }
+                                          @default { ℹ️ }
+
+                                      }
+                                  </div>
+                                  <div>
+                                      <h4>{{item.titulo}}</h4>
+
+                                      <p>{{item.descricao}}</p>
+                                  </div>
+                              </div>
+                          }
+                      </div>
+                      <div class="help-footer">
+                          <div class="footer-info">
+                              <strong>Dica</strong>
+                              <span>
+                                  Todos os indicadores respeitam os filtros de período e empresas selecionadas.
+                              </span>
+                          </div>
+                          <button
+                              class="btn-entendi"
+                              (click)="fecharAjuda()">
+                              Entendi
+                          </button>
+                      </div>
+                  </div>
+              </div>
+              }
           </div>
         </div>
       </div>
@@ -147,6 +219,222 @@ import { DataTableComponent }         from '../../../../shared/components/inadim
     </div>
   `,
   styles: [`
+
+    .help-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.65);
+      backdrop-filter:blur(8px);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      z-index:9999;
+      animation:fadeIn .2s ease;
+  }
+
+  .help-modal{
+      width:850px;
+      max-width:95vw;
+      max-height:85vh;
+      overflow:hidden;
+      background:#141922;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:22px;
+      display:flex;
+      flex-direction:column;
+      box-shadow:
+          0 20px 60px rgba(0,0,0,.55);
+      animation:modalIn .25s ease;
+  }
+
+  .help-header{
+      padding:28px 30px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+  }
+
+  .help-badge{
+      display:inline-flex;
+      background:rgba(244,63,94,.15);
+      color:#f43f5e;
+      padding:5px 12px;
+      border-radius:50px;
+      font-size:12px;
+      margin-bottom:14px;
+  }
+
+  .help-header h2{
+      font-size:28px;
+      font-family:'Syne';
+      margin-bottom:8px;
+  }
+
+  .help-header p{
+      color:#9ca3af;
+      line-height:1.6;
+      max-width:600px;
+  }
+
+  .close-btn{
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      border:none;
+      background:rgba(255,255,255,.06);
+      color:white;
+      cursor:pointer;
+      transition:.2s;
+  }
+
+  .close-btn:hover{
+      background:#f43f5e;
+      transform:rotate(90deg);
+  }
+
+  .help-body{
+      flex:1;
+      overflow:auto;
+      padding:26px;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
+      gap:18px;
+  }
+
+  .help-card{
+      display:flex;
+      gap:18px;
+      background:#1a202c;
+      border:1px solid rgba(255,255,255,.05);
+      border-radius:16px;
+      padding:20px;
+      transition:.25s;
+  }
+
+  .help-card:hover{
+      transform:translateY(-4px);
+      border-color:#f43f5e;
+      box-shadow:0 10px 25px rgba(244,63,94,.12);
+  }
+
+  .help-icon{
+      width:52px;
+      height:52px;
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(244,63,94,.12);
+      font-size:24px;
+      flex-shrink:0;
+  }
+
+  .help-card h4{
+      margin:0;
+      font-size:15px;
+      color:white;
+      margin-bottom:8px;
+  }
+
+  .help-card p{
+      margin:0;
+      color:#9ca3af;
+      line-height:1.6;
+      font-size:13px;
+  }
+
+.help-footer{
+
+    padding:20px 28px;
+
+    border-top:1px solid rgba(255,255,255,.06);
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+}
+
+.footer-info{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:5px;
+}
+
+.footer-info strong{
+
+    color:white;
+}
+
+.footer-info span{
+
+    color:#9ca3af;
+
+    font-size:13px;
+}
+
+.btn-entendi{
+
+    background:#f43f5e;
+
+    color:white;
+
+    border:none;
+
+    padding:10px 24px;
+
+    border-radius:10px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.btn-entendi:hover{
+
+    background:#e11d48;
+}
+
+@keyframes modalIn{
+
+    from{
+
+        opacity:0;
+        transform:translateY(20px) scale(.95);
+
+    }
+
+    to{
+
+        opacity:1;
+        transform:none;
+
+    }
+
+}
+
+@keyframes fadeIn{
+
+    from{
+
+        opacity:0;
+
+    }
+
+    to{
+
+        opacity:1;
+
+    }
+
+}
     .page { display: flex; flex-direction: column; gap: 24px; }
 
     /* ── Header ── */
@@ -186,6 +474,33 @@ import { DataTableComponent }         from '../../../../shared/components/inadim
       cursor: pointer; transition: background .2s;
     }
     .btn-filtrar:hover { background: rgba(244,63,94,.25); }
+
+    .help-btn{
+      width:34px;
+      height:34px;
+
+      border-radius:50%;
+
+      border:1px solid var(--border);
+
+      background:rgba(255,255,255,.05);
+
+      color:var(--muted);
+
+      cursor:pointer;
+
+      transition:.2s;
+
+      font-weight:700;
+
+      font-size:15px;
+  }
+
+  .help-btn:hover{
+      background:#f43f5e;
+      color:white;
+      border-color:#f43f5e;
+  }
 
     /* ── Live badge ── */
     .live-badge {
@@ -279,6 +594,64 @@ import { DataTableComponent }         from '../../../../shared/components/inadim
 })
 export class InadimplenciaComponent implements OnInit {
   protected readonly svc = inject(InadimplenciaService);
+
+  readonly ajudaAberta = signal(false);
+
+  readonly ajuda: HelpItem[] = [
+    {
+      titulo: 'Total Inadimplente',
+      descricao:
+        'Representa a soma financeira de todos os títulos vencidos e ainda não baixados dentro do período selecionado.'
+    },
+    {
+      titulo: 'Quantidade de Títulos',
+      descricao:
+        'Quantidade total de títulos inadimplentes considerados nos indicadores.'
+    },
+    {
+      titulo: 'Ticket Médio',
+      descricao:
+        'Valor médio dos títulos inadimplentes. É calculado dividindo o Total Inadimplente pela Quantidade de Títulos.'
+    },
+    {
+      titulo: 'Clientes Inadimplentes',
+      descricao:
+        'Quantidade de clientes distintos que possuem pelo menos um título em atraso.'
+    },
+    {
+      titulo: 'Maiores Devedores',
+      descricao:
+        'Ranking dos clientes com maior valor financeiro inadimplente.'
+    },
+    {
+      titulo: 'Faixa de Atraso',
+      descricao:
+        'Distribuição dos títulos conforme a quantidade de dias em atraso.'
+    },
+    {
+      titulo: 'Evolução Diária',
+      descricao:
+        'Mostra a evolução diária dos valores inadimplentes considerando a data de vencimento.'
+    },
+    {
+      titulo: 'Última Atualização',
+      descricao:
+        'Data e horário da última sincronização realizada pelo processo ETL.'
+    },
+    {
+      titulo: 'Filtros',
+      descricao:
+        'Todos os indicadores respeitam o período e as empresas selecionadas no filtro superior.'
+    }
+  ];
+
+  abrirAjuda(): void {
+    this.ajudaAberta.set(true);
+  }
+
+  fecharAjuda(): void {
+    this.ajudaAberta.set(false);
+  }
 
   ngOnInit(): void {
     this.svc.carregar(this.svc.dataInicio(), this.svc.dataFim());
