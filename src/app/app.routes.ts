@@ -52,7 +52,7 @@ export const routes: Routes = [
   {
     path: 'admin',
     canActivate: [authGuard],
-    loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),
+    loadComponent: () => import('./layout/shell/shell-sfiltro').then(m => m.ShellComponent),
     children: [
       { path: 'usuarios',    canActivate: [permissaoGuard('usuarios')],    loadComponent: () => import('./pages/admin/usuarios/usuarios').then(m => m.AdminUsuariosComponent) },
       { path: 'permissoes',  canActivate: [permissaoGuard('permissoes')],  loadComponent: () => import('./pages/admin/permissoes/permissoes').then(m => m.AdminPermissoesComponent) },
