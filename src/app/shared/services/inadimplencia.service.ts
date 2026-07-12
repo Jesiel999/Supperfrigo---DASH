@@ -28,6 +28,7 @@ export class InadimplenciaService {
 
     return `${ontem.getFullYear()}-${String(ontem.getMonth() + 1).padStart(2, '0')}-${String(ontem.getDate()).padStart(2, '0')}`;
   }
+  
 
   readonly dataInicio = signal<string>(this.getPrimeiroDiaMes());
   readonly dataFim    = signal<string>(this.getHoje());
@@ -46,6 +47,56 @@ export class InadimplenciaService {
   private readonly _diasPeriodo      = signal<string[]>([]);
   private readonly _fmtInicio        = signal<string>('');
   private readonly _fmtFim           = signal<string>('');
+
+  formatarDataHora(data: string | null | undefined): string {
+    if (!data) return '-';
+
+    const dt = new Date(data.replace(' ', 'T'));
+
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(dt);
+  }
+
+  proximaAtualizacao(data: string | null | undefined): string {
+    if (!data) return '-';
+
+    const dt = new Date(data.replace(' ', 'T'));
+
+    dt.setMinutes(dt.getMinutes() + 30);
+
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(dt);
+  }
+
+  readonly ultimaAtualizacao = computed(() => {
+
+    const lista = this._todosBrutos();
+
+    if (!lista.length) return null;
+
+    return lista
+      .map(x => x.ultima_atualizacao)
+      .sort()
+      .at(-1) ?? null;
+  });
+
+  readonly ultimaAtualizacaoFormatada = computed(() =>
+    this.formatarDataHora(this.ultimaAtualizacao())
+  );
+
+  readonly proximaAtualizacaoFormatada = computed(() =>
+    this.proximaAtualizacao(this.ultimaAtualizacao())
+  );
 
   // ─── Filtro de empresa aplicado reativamente ──────────────────
   // Qualquer mudança em empresaFilter.selecionadas() dispara
@@ -274,6 +325,7 @@ export class InadimplenciaService {
       numero_documento:         item.numero_documento,
       ordem:                    item.ordem,
       descricao_forma_cobranca: item.descricao_forma_cobranca,
+      ultima_atualizacao:       String(item.ultima_atualizacao),
       origem:                   item.origem,
       dias_atraso:              Number(item.dias_atraso ?? 0),
       percentualTotal:          0,

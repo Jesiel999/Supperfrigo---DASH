@@ -17,6 +17,7 @@ export interface ClienteInadimplente {
   numero_documento?: string;
   ordem?: number;
   descricao_forma_cobranca?: string;
+  ultima_atualizacao: string;
   origem?: string;
   dias_atraso: number;
   percentualTotal: number;
@@ -99,6 +100,7 @@ export interface InadimplenciaApiItem {
   ordem?: number;
   descricao_forma_cobranca?: string;
   origem?: string;
+  ultima_atualizacao: string | null;
 }
 export interface EnvioCobrancaPayload { id_pessoa: number; canal: CanalCobranca; mensagem?: string; }
 export interface RespostaEnvio { status: 'enviado' | 'falhou'; canal: CanalCobranca; mensagem: string; }
@@ -120,6 +122,7 @@ export interface PmpApiItem {
   dias_pagamento: number | null;
   status_financeiro: string;
   descricao_situacao: string | null;
+  ultima_atualizacao: string | null;
 }
 
 export interface PmrApiItem {
@@ -139,6 +142,7 @@ export interface PmrApiItem {
   dias_recebimento: number | null;
   status_financeiro: string;
   descricao_situacao: string | null;
+  ultima_atualizacao: string | null;
 }
 
 // ─── PMP e PMR
@@ -199,6 +203,8 @@ export interface ListPmp {
   dias_pagamento: number | null;
   status_financeiro: string;
   descricao_situacao: string | null;
+  ultima_atualizacao: string | null;
+  
 }
 
 export interface ListPmr {
@@ -218,4 +224,5 @@ export interface ListPmr {
   dias_recebimento: number | null;
   status_financeiro: string;
   descricao_situacao: string | null;
+  ultima_atualizacao: string | null;
 }

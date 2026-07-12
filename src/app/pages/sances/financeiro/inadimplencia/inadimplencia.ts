@@ -24,6 +24,15 @@ import { DataTableComponent }         from '../../../../shared/components/inadim
       <div class="page-header">
         <div>
           <h1 class="page-title">Dashboard de <span>Inadimplência</span></h1>
+          
+
+          <p class="page-sub">
+            Última atualização:
+            <strong>{{ svc.ultimaAtualizacaoFormatada() }}</strong>
+
+            • Próxima atualização:
+            <strong>{{ svc.proximaAtualizacaoFormatada() }}</strong>
+          </p>
         </div>
 
         <div class="header-right">
@@ -42,11 +51,6 @@ import { DataTableComponent }         from '../../../../shared/components/inadim
               (change)="onDataFim($any($event.target).value)"
             />
             <button class="btn-filtrar" (click)="recarregar()">Filtrar</button>
-          </div>
-
-          <div class="live-badge">
-            <span class="live-dot"></span>
-            Ao vivo
           </div>
         </div>
       </div>
