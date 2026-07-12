@@ -19,8 +19,14 @@ import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/dat
       <!-- Header -->
       <div class="page-header">
         <div>
-          <h1 class="page-title">Análise <span>Financeira</span></h1>
-          <p class="page-sub">PMP e PMR</p>
+          <h1 class="page-title">Análise <span>PMP & PMR</span></h1>
+          <p class="page-sub">
+            Última atualização:
+            <strong>{{ svc.ultimaAtualizacaoFormatada() }}</strong>
+
+            • Próxima atualização:
+            <strong>{{ svc.proximaAtualizacaoFormatada() }}</strong>
+          </p>
         </div>
 
         <div class="header-right">
@@ -39,11 +45,6 @@ import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/dat
               (change)="onDataFim($any($event.target).value)"
             />
             <button class="btn-filtrar" (click)="recarregar()">Filtrar</button>
-          </div>
-
-          <div class="live-badge">
-            <span class="live-dot"></span>
-            Ao vivo
           </div>
         </div>
       </div>
@@ -130,30 +131,6 @@ import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/dat
               </div>
             </div>
           </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <h2 class="card-title">PMP por Centro de Custo/Origem</h2>
-                <p class="card-sub">Ordenado por dias</p>
-              </div>
-            </div>
-            <div class="agrupamento-list">
-              <div *ngFor="let item of svc.agrupamentoPmpCentroCusto()" class="agrupamento-item">
-                <div class="agrupamento-info">
-                  <div class="agrupamento-nome">{{ item.label }}</div>
-                  <div class="agrupamento-stats">
-                    <span class="stat">{{ item.pmpDias }} dias</span>
-                    <span class="stat">{{ item.qtdTitulos }} títulos</span>
-                  </div>
-                </div>
-                <div class="agrupamento-valor">
-                  <div class="valor">{{ item.valorTotal | currency }}</div>
-                  <div class="percentual">{{ item.percentualTotal.toFixed(1) }}%</div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- Tabela PMP -->
@@ -221,30 +198,6 @@ import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/dat
             </div>
             <div class="agrupamento-list">
               <div *ngFor="let item of svc.agrupamentoPmrCliente()" class="agrupamento-item">
-                <div class="agrupamento-info">
-                  <div class="agrupamento-nome">{{ item.label }}</div>
-                  <div class="agrupamento-stats">
-                    <span class="stat">{{ item.pmrDias }} dias</span>
-                    <span class="stat">{{ item.qtdTitulos }} títulos</span>
-                  </div>
-                </div>
-                <div class="agrupamento-valor">
-                  <div class="valor">{{ item.valorTotal | currency }}</div>
-                  <div class="percentual">{{ item.percentualTotal.toFixed(1) }}%</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <h2 class="card-title">PMR por Vendedor/Origem</h2>
-                <p class="card-sub">Ordenado por dias</p>
-              </div>
-            </div>
-            <div class="agrupamento-list">
-              <div *ngFor="let item of svc.agrupamentoPmrVendedor()" class="agrupamento-item">
                 <div class="agrupamento-info">
                   <div class="agrupamento-nome">{{ item.label }}</div>
                   <div class="agrupamento-stats">
@@ -431,13 +384,6 @@ import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/dat
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-    }
-
-    /* ── Agrupamentos ── */
-    .agrupamentos-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 16px;
     }
 

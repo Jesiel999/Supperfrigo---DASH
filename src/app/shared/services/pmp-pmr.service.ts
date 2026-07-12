@@ -48,6 +48,56 @@ export class PmpPmrService {
   private readonly _fmtInicio = signal<string>('');
   private readonly _fmtFim = signal<string>('');
 
+  formatarDataHora(data: string | null | undefined): string {
+    if (!data) return '-';
+
+    const dt = new Date(data.replace(' ', 'T'));
+
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(dt);
+  }
+
+  proximaAtualizacao(data: string | null | undefined): string {
+    if (!data) return '-';
+
+    const dt = new Date(data.replace(' ', 'T'));
+
+    dt.setMinutes(dt.getMinutes() + 30);
+
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(dt);
+  }
+
+  readonly ultimaAtualizacao = computed(() => {
+
+    const lista = this._pmpBruto();
+
+    if (!lista.length) return null;
+
+    return lista
+      .map(x => x.ultima_atualizacao)
+      .sort()
+      .at(-1) ?? null;
+  });
+
+  readonly ultimaAtualizacaoFormatada = computed(() =>
+    this.formatarDataHora(this.ultimaAtualizacao())
+  );
+
+  readonly proximaAtualizacaoFormatada = computed(() =>
+    this.proximaAtualizacao(this.ultimaAtualizacao())
+  );
+
   // ─── Filtros de status
   readonly filtroStatusPmp = signal<string>('todos');
   readonly filtroStatusPmr = signal<string>('todos');
@@ -221,42 +271,6 @@ export class PmpPmrService {
       }))
       .sort((a, b) => b.valorTotal - a.valorTotal)
       .slice(0, 10);
-  });
-
-  // ─── Agrupamento PMP por Centro de Custo
-  readonly agrupamentoPmpCentroCusto = computed((): AgrupamentoPmp[] => {
-    const dados = this._pmpFiltrado();
-    const totalGeral = dados.reduce((s, c) => s + c.valor_total, 0);
-
-    const map = new Map<
-      string,
-      { nome: string; somaValor: number; somaValorDias: number; qtd: number }
-    >();
-
-    dados.forEach(c => {
-      const chave = c.origem ?? 'Sem origem';
-      if (!map.has(chave)) {
-        map.set(chave, { nome: chave, somaValor: 0, somaValorDias: 0, qtd: 0 });
-      }
-
-      const item = map.get(chave)!;
-      const dias = c.dias_pagamento ?? 0;
-      item.somaValor += c.valor_total;
-      item.somaValorDias += c.valor_total * dias;
-      item.qtd += 1;
-    });
-
-    return Array.from(map.values())
-      .map(item => ({
-        chave: item.nome,
-        label: item.nome,
-        pmpDias: item.somaValor > 0 ? Math.round(item.somaValorDias / item.somaValor) : 0,
-        qtdTitulos: item.qtd,
-        valorTotal: item.somaValor,
-        valorMedio: item.somaValor / item.qtd,
-        percentualTotal: totalGeral > 0 ? (item.somaValor / totalGeral) * 100 : 0,
-      }))
-      .sort((a, b) => b.pmpDias - a.pmpDias);
   });
 
   // ─── Agrupamento PMR por Cliente
