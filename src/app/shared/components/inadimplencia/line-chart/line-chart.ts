@@ -44,16 +44,9 @@ import { LOCALE_ID } from '@angular/core';
               stroke="#f43f5e" stroke-width="2.5"
               stroke-linecap="round" stroke-linejoin="round"/>
 
-        <path [attr.d]="areaRec()" fill="url(#areaRec)"/>
-        <path [attr.d]="lineRec()" fill="none"
-              stroke="#34d399" stroke-width="2"
-              stroke-dasharray="5,3" stroke-linecap="round"/>
-
         @if (lastPoint()) {
           <circle [attr.cx]="lastPoint()!.x" [attr.cy]="lastPoint()!.yInad"
                   r="4" fill="#f43f5e" stroke="#0b0f1a" stroke-width="2"/>
-          <circle [attr.cx]="lastPoint()!.x" [attr.cy]="lastPoint()!.yRec"
-                  r="4" fill="#34d399" stroke="#0b0f1a" stroke-width="2"/>
         }
 
         @for (p of labelPoints(); track $index) {
@@ -82,11 +75,6 @@ import { LOCALE_ID } from '@angular/core';
         <div class="row">
           <span>Inadimplente</span>
           <b>R$ {{ hover.inadimplente | number:'1.2-2' }}</b>
-        </div>
-
-        <div class="row">
-          <span>Recuperado</span>
-          <b>R$ {{ hover.recuperado | number:'1.2-2' }}</b>
         </div>
       </div>
     }
@@ -148,7 +136,7 @@ export class LineChartComponent {
   );
 
   private readonly maxVal = computed(() => {
-    const all = this.pontos().flatMap((p) => [p.inadimplente, p.recuperado]);
+    const all = this.pontos().flatMap((p) => [p.inadimplente]);
     return Math.max(...all, 1);
   });
 
@@ -166,14 +154,14 @@ export class LineChartComponent {
     }));
   });
 
-  private buildLine(key: 'inadimplente' | 'recuperado'): string {
+  private buildLine(key: 'inadimplente'): string {
     const pts = this.pontos();
     return pts
       .map((p, i) => `${i === 0 ? 'M' : 'L'}${this.toX(i, pts.length)},${this.toY(p[key])}`)
       .join(' ');
   }
 
-  private buildArea(key: 'inadimplente' | 'recuperado'): string {
+  private buildArea(key: 'inadimplente'): string {
     const pts   = this.pontos();
     const total = pts.length;
     const baseY = this.paddingTop + this.chartH();
@@ -182,9 +170,7 @@ export class LineChartComponent {
   }
 
   protected readonly lineInad = computed(() => this.buildLine('inadimplente'));
-  protected readonly lineRec  = computed(() => this.buildLine('recuperado'));
-  protected readonly areaInad = computed(() => this.buildArea('inadimplente'));
-  protected readonly areaRec  = computed(() => this.buildArea('recuperado'));
+  protected readonly areaInad = computed(() => this.buildArea('inadimplente')); 
 
   protected readonly lastPoint = computed(() => {
     const pts = this.pontos();
@@ -193,7 +179,6 @@ export class LineChartComponent {
     return {
       x     : this.toX(pts.length - 1, pts.length),
       yInad : this.toY(last.inadimplente),
-      yRec  : this.toY(last.recuperado),
     };
   });
 

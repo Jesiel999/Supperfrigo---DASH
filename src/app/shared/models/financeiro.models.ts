@@ -25,11 +25,11 @@ export interface ClienteInadimplente {
 
 export interface KpiInadimplencia {
   totalInadimplente: number; clientesInadimplentes: number;
-  ticketMedio: number; recuperadoMes: number;
+  ticketMedio: number; qtdTitulosAtual: number;
   variacaoTotal: number; variacaoClientes: number;
-  variacaoTicket: number; variacaoRecuperado: number;
+  variacaoTicket: number; variacaoTitulos: number;
 }
-export interface PontoGrafico { data: string; inadimplente: number; recuperado: number; }
+export interface PontoGrafico { data: string; inadimplente: number;}
 export interface MaioresDevedores {nome: string; valor: number; percentual: number;
 }
 

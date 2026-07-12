@@ -90,8 +90,6 @@ export class InadimplenciaService {
   readonly kpis = computed((): KpiInadimplencia => {
     const inadAtual  = this._inadimplentes();
     const inadAnt    = this._inadimplentesAnt();
-    const comBaixa   = this._comBaixa();
-    const comBaixaAnt = this._comBaixaAnt();
     const inicio     = this._fmtInicio();
     const fim        = this._fmtFim();
 
@@ -101,40 +99,22 @@ export class InadimplenciaService {
     const qtdAtual    = new Set(inadAtual.map(c => c.id_pessoa)).size;
     const qtdAnterior = new Set(inadAnt.map(c => c.id_pessoa)).size;
 
-    const qtdTitulosAtual = inadAtual.length;
-    const qtdTitulosAnterior = inadAnt.length;
+    const qtdTitulosAtual = new Set(inadAtual).size;
+    const qtdTitulosAnterior = new Set(inadAnt).size;
     
     const ticketAtual    = qtdTitulosAtual    ? totalAtual    / qtdTitulosAtual    : 0;
     const ticketAnterior = qtdTitulosAnterior ? totalAnterior / qtdTitulosAnterior : 0;
 
-    // Recuperado = apenas baixas ocorridas DEPOIS do vencimento (pagamento em atraso),
-    // dentro do período selecionado. Baixa em dia (data_baixa <= data_vencimento) não conta
-    // como "recuperação de inadimplência" — é apenas um pagamento normal.
-    const recuperadoMes = inicio && fim
-      ? comBaixa
-          .filter(c =>
-            c.data_baixa &&
-            c.data_baixa > c.data_vencimento &&
-            c.data_baixa >= inicio &&
-            c.data_baixa <= fim
-          )
-          .reduce((s, c) => s + c.valor_total, 0)
-      : 0;
-
-    // período anterior para variação do recuperado
-    const recuperadoAnt = comBaixaAnt
-      .filter(c => c.data_baixa)
-      .reduce((s, c) => s + c.valor_total, 0);
-
+    console.log(qtdTitulosAtual)
     return {
-      totalInadimplente:     totalAtual,
+      totalInadimplente: totalAtual,
       clientesInadimplentes: qtdAtual,
-      ticketMedio:           ticketAtual,
-      recuperadoMes,
-      variacaoTotal:        this._var(totalAtual,    totalAnterior),
-      variacaoClientes:     this._var(qtdAtual,      qtdAnterior),
-      variacaoTicket:       this._var(ticketAtual,   ticketAnterior),
-      variacaoRecuperado:   this._var(recuperadoMes, recuperadoAnt),
+      ticketMedio: ticketAtual,
+      qtdTitulosAtual,
+      variacaoTotal: this._var(totalAtual, totalAnterior),
+      variacaoClientes: this._var(qtdAtual, qtdAnterior),
+      variacaoTicket: this._var(ticketAtual, ticketAnterior),
+      variacaoTitulos: this._var(qtdTitulosAtual, qtdTitulosAnterior),
     };
   });
 
@@ -152,7 +132,6 @@ export class InadimplenciaService {
     const dtFim    = this._parseDate(fim);
 
     const evolucaoMap   = new Map<string, number>();
-    const recuperadoMap = new Map<string, number>();
 
     // Linha vermelha: soma valor_total por data_vencimento, APENAS de quem não tem data_baixa
     inadAtual.forEach(c => {
@@ -161,19 +140,10 @@ export class InadimplenciaService {
       evolucaoMap.set(c.data_vencimento, (evolucaoMap.get(c.data_vencimento) ?? 0) + c.valor_total);
     });
 
-    // Linha verde: soma valor_total por data_vencimento, APENAS RECEBIMENTOS após data de vencimento
-    comBaixa.forEach(c => {
-      if (!c.data_baixa) return;
-      const dt = this._parseDate(c.data_vencimento);
-      const baixa = this._parseDate(c.data_baixa);
-      if (baixa < dtInicio || baixa > dtFim) return;
-      recuperadoMap.set(c.data_vencimento, (recuperadoMap.get(c.data_vencimento) ?? 0) + c.valor_total);
-    });
 
     return dias.map(d => ({
       data:         d,
-      inadimplente: evolucaoMap.get(d)   ?? 0,
-      recuperado:   recuperadoMap.get(d) ?? 0,
+      inadimplente: evolucaoMap.get(d)  ?? 0,
     }));
   });
 
@@ -218,7 +188,6 @@ export class InadimplenciaService {
     const status = this.filtroStatus();
 
     return this._inadimplentes().filter(c => {
-      if (status !== 'todos' && c.status !== status) return false;
 
       if (busca) {
         const campos = [

@@ -60,12 +60,12 @@ import { DataTableComponent }         from '../../../../shared/components/inadim
           [delta]="svc.kpis().variacaoTotal"
           [isCurrency]="true"
         />
-        <app-kpi-card
-          label="Clientes Inadimplentes"
-          icon="👥"
-          variant="warning"
-          [value]="svc.kpis().clientesInadimplentes"
-          [delta]="svc.kpis().variacaoClientes"
+        <app-kpi-card-invert
+          label="Quantidade de Títulos"
+          icon="✅"
+          variant="success"
+          [value]="svc.kpis().qtdTitulosAtual"
+          [delta]="svc.kpis().variacaoTitulos"
           [isCurrency]="false"
         />
         <app-kpi-card
@@ -76,13 +76,13 @@ import { DataTableComponent }         from '../../../../shared/components/inadim
           [delta]="svc.kpis().variacaoTicket"
           [isCurrency]="true"
         />
-        <app-kpi-card-invert
-          label="Recuperado no Mês"
-          icon="✅"
-          variant="success"
-          [value]="svc.kpis().recuperadoMes"
-          [delta]="svc.kpis().variacaoRecuperado"
-          [isCurrency]="true"
+        <app-kpi-card
+          label="Clientes Inadimplentes"
+          icon="👥"
+          variant="warning"
+          [value]="svc.kpis().clientesInadimplentes"
+          [delta]="svc.kpis().variacaoClientes"
+          [isCurrency]="false"
         />
       </div>
 
@@ -121,10 +121,6 @@ import { DataTableComponent }         from '../../../../shared/components/inadim
               <span class="legend-dot" style="background:#f43f5e"></span>
               Inadimplente
             </div>
-            <div class="legend-item">
-              <span class="legend-dot" style="background:#34d399"></span>
-              Recuperado
-            </div>
           </div>
         </div>
         <app-line-chart [pontos]="svc.pontosGrafico()" />
@@ -138,17 +134,6 @@ import { DataTableComponent }         from '../../../../shared/components/inadim
             <p class="card-sub">
               {{ svc.clientesFiltrados().length }} títulos · ordenado por vencimento
             </p>
-          </div>
-          <div class="table-filters">
-            <select
-              class="select-status"
-              [value]="svc.filtroStatus()"
-              (change)="svc.setFiltroStatus($any($event.target).value)"
-            >
-              <option value="todos">Todos os status</option>
-              <option value="VENCIDO">Vencido</option>
-              <option value="PAGO">Pago</option>
-            </select>
           </div>
         </div>
 

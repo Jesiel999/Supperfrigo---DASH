@@ -77,11 +77,11 @@ import { DataTableComponent }         from '../../../../shared/components/inadim
           [isCurrency]="true"
         />
         <app-kpi-card-invert
-          label="Recuperado no Mês"
+          label="Quantidade de títulos"
           icon="✅"
           variant="success"
-          [value]="svc.kpis().recuperadoMes"
-          [delta]="svc.kpis().variacaoRecuperado"
+          [value]="svc.kpis().qtdTitulosAtual"
+          [delta]="svc.kpis().variacaoTitulos"
           [isCurrency]="true"
         />
       </div>
