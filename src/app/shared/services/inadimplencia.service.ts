@@ -13,6 +13,11 @@ import {
 } from '../models/financeiro.models';
 import { FiltroOpcao } from '../components/multi-select-filter/pessoa_filter';
 
+const PALETA_EMPRESAS = [
+  '#f43f5e', '#fb923c', '#38bdf8', '#a78bfa',
+  '#34d399', '#fbbf24', '#818cf8', '#f472b6',
+];
+
 @Injectable({ providedIn: 'root' })
 export class InadimplenciaService {
   private readonly api          = inject(ApiService);
@@ -279,6 +284,64 @@ export class InadimplenciaService {
       { label: '61–90 dias', percentual: Math.round(inad.filter(c => c.dias_atraso >= 61 && c.dias_atraso <= 90).length / total * 100), cor: '#38bdf8' },
       { label: '+90 dias',   percentual: Math.round(inad.filter(c => c.dias_atraso > 90).length                          / total * 100), cor: '#a78bfa' },
     ];
+  });
+
+  // ─── Agrupamento de filiais — pega só o primeiro "nome" da
+  // razão social para consolidar filiais sob a mesma matriz.
+  // Ex: "ACME COMERCIO FILIAL 02" e "ACME COMERCIO MATRIZ" → "ACME".
+  private _nomeGrupoEmpresa(nome: string | null | undefined): string {
+    if (!nome) return 'Sem empresa';
+    const primeiro = nome.trim().split(/\s+/)[0];
+    return primeiro || 'Sem empresa';
+  }
+
+  // ─── Distribuição por empresa (pizza) — computed reativo ─────
+  // Agrupado pelo primeiro nome (filiais consolidadas). Top 8
+  // grupos por valor inadimplente no período; se houver mais que
+  // isso, os demais não aparecem na fatia (ajuste o slice(0, 8)
+  // se quiser um bucket "Outras").
+  readonly distribuicaoPorEmpresa = computed((): FaixaAtraso[] => {
+    const inad  = this._inadimplentes();
+    const total = inad.reduce((s, c) => s + c.valor_total, 0) || 1;
+
+    const map = new Map<string, number>();
+    inad.forEach(c => {
+      const grupo = this._nomeGrupoEmpresa(c.nome_empresa);
+      map.set(grupo, (map.get(grupo) ?? 0) + c.valor_total);
+    });
+
+    return Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([label, valor], i) => ({
+        label,
+        percentual: Math.round((valor / total) * 100),
+        cor: PALETA_EMPRESAS[i % PALETA_EMPRESAS.length],
+      }));
+  });
+
+  // ─── Valor total por empresa (barra) — computed reativo ──────
+  // Mesmo agrupamento pelo primeiro nome (filiais consolidadas).
+  // Reaproveita o formato MaioresDevedores para usar o mesmo
+  // app-top-devedores-bar já existente na tela.
+  readonly valorPorEmpresa = computed((): MaioresDevedores[] => {
+    const inad  = this._inadimplentes();
+    const total = inad.reduce((s, c) => s + c.valor_total, 0);
+
+    const map = new Map<string, number>();
+    inad.forEach(c => {
+      const grupo = this._nomeGrupoEmpresa(c.nome_empresa);
+      map.set(grupo, (map.get(grupo) ?? 0) + c.valor_total);
+    });
+
+    return Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([nome, valor]) => ({
+        nome,
+        valor,
+        percentual: total > 0 ? (valor / total) * 100 : 0,
+      }));
   });
 
   // ─── Clientes filtrados para a tabela — computed reativo ──────

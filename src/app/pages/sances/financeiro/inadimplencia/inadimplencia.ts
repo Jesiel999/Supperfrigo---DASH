@@ -170,6 +170,31 @@ interface HelpItem {
           [isCurrency]="false"
         />
       </div>
+      
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Valor por Empresa</h2>
+              <p class="card-sub">Total inadimplente</p>
+            </div>
+          </div>
+          <app-top-devedores-bar [data]="svc.valorPorEmpresa()" />
+        </div>
+
+        <div class="card donut-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Distribuição por Empresa</h2>
+              <p class="card-sub">% do valor total inadimplente</p>
+            </div>
+          </div>
+          <app-donut-chart
+            [faixas]="svc.distribuicaoPorEmpresa()"
+            [totalClientes]="svc.kpis().clientesInadimplentes"
+          />
+        </div>
+      </div>
 
       <div class="charts-row">
         <div class="card">
@@ -211,7 +236,6 @@ interface HelpItem {
         <app-line-chart [pontos]="svc.pontosGrafico()" />
       </div>
       
-
       <div class="card">
         <div class="card-header">
           <div>
@@ -224,7 +248,6 @@ interface HelpItem {
 
         <app-data-table [clientes]="svc.clientesFiltrados()" />
       </div>
-
     </div>
   `,
   styles: [`

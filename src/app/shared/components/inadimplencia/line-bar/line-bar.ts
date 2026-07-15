@@ -26,13 +26,19 @@ import { MaioresDevedores } from '../../../models/financeiro.models';
           </div>
         </div>
       } @empty {
-        <div class="empty">Sem dados de devedores.</div>
+        <div class="empty">Sem dados.</div>
       }
     </div>
   `,
   styles: [`
-    .bar-list { display: flex; flex-direction: column; gap: 10px; }
-
+    .bar-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 350px; 
+      overflow-y: auto;
+      padding-right: 6px;
+    }
     .bar-row {
       display: grid;
       grid-template-columns: 180px 1fr 110px;

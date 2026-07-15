@@ -43,7 +43,7 @@ export interface FiltroOpcao {
                   [checked]="selecionados().has(op.id)"
                   (change)="onToggle(op.id)"
                 />
-                <span class="opt-nome">{{ op.nome }}</span>
+                <span class="opt-nome">{{ op.id }} | {{ op.nome }}</span>
               </label>
             }
           </div>
@@ -81,7 +81,7 @@ export interface FiltroOpcao {
 
     .dropdown {
       position: absolute; top: calc(100% + 8px); left: 0;
-      min-width: 240px; background: var(--surface);
+      min-width: 240px; max-width: 300px; background: var(--surface);
       border: 1px solid rgba(255,255,255,.1); border-radius: 12px;
       box-shadow: 0 16px 48px rgba(0,0,0,.5); overflow: hidden;
       z-index: 1000; animation: fadeDown .15s ease;
