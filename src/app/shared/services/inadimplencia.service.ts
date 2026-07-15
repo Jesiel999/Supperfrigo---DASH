@@ -11,6 +11,7 @@ import {
   StatusInadimplencia,
   MaioresDevedores,
 } from '../models/financeiro.models';
+import { FiltroOpcao } from '../components/multi-select-filter/pessoa_filter';
 
 @Injectable({ providedIn: 'root' })
 export class InadimplenciaService {
@@ -38,6 +39,13 @@ export class InadimplenciaService {
   readonly filtroStatus = signal<string>('todos');
   readonly busca        = signal<string>('');
   readonly carregando   = signal<boolean>(false);
+
+  // Conjunto vazio == "todos" (sem restrição) — mesma convenção do
+  // EmpresaFilterService. Filtra por id_pessoa em TODO o escopo
+  // (KPIs, gráfico, maiores devedores, faixas de atraso) — EXCETO
+  // na planilha/tabela, que continua mostrando todos os clientes
+  // (respeitando apenas empresa + busca + status).
+  readonly filtroPessoas = signal<Set<number>>(new Set());
 
   // ─── Dados BRUTOS vindos da API (nunca filtrados) ─────────────
   // Separar bruto do filtrado é o ponto central da correção.
@@ -98,10 +106,10 @@ export class InadimplenciaService {
     this.proximaAtualizacao(this.ultimaAtualizacao())
   );
 
-  // ─── Filtro de empresa aplicado reativamente ──────────────────
-  // Qualquer mudança em empresaFilter.selecionadas() dispara
-  // o recálculo de TUDO automaticamente — sem F5.
-  private readonly _inadimplentes = computed(() => {
+  // ─── Filtro de empresa aplicado reativamente (BASE — sem id_pessoa) ──
+  // Esta é a base usada pela TABELA (planilha), que não deve ser
+  // afetada pelo filtro de cliente/id_pessoa.
+  private readonly _inadimplentesBase = computed(() => {
     const brutos   = this._todosBrutos();
     const empresas = this.empresaFilter.selecionadas();
 
@@ -111,7 +119,7 @@ export class InadimplenciaService {
     return semBaixa.filter(c => empresas.has(Number(c.id_empresa)));
   });
 
-  private readonly _inadimplentesAnt = computed(() => {
+  private readonly _inadimplentesBaseAnt = computed(() => {
     const brutos   = this._todosBrutosAnt();
     const empresas = this.empresaFilter.selecionadas();
 
@@ -121,20 +129,61 @@ export class InadimplenciaService {
     return semBaixa.filter(c => empresas.has(Number(c.id_empresa)));
   });
 
+  // ─── Filtro de id_pessoa aplicado por cima da base ────────────
+  // Usado em TUDO (KPIs, gráfico, maiores devedores, faixas de
+  // atraso) — menos na tabela, que usa a base diretamente.
+  private _filtrarPorPessoa(lista: ClienteInadimplente[]): ClienteInadimplente[] {
+    const pessoas = this.filtroPessoas();
+    if (pessoas.size === 0) return lista;
+    return lista.filter(c => pessoas.has(Number(c.id_pessoa)));
+  }
+
+  private readonly _inadimplentes = computed(() =>
+    this._filtrarPorPessoa(this._inadimplentesBase())
+  );
+
+  private readonly _inadimplentesAnt = computed(() =>
+    this._filtrarPorPessoa(this._inadimplentesBaseAnt())
+  );
+
   private readonly _comBaixa = computed(() => {
     const brutos   = this._todosBrutos();
     const empresas = this.empresaFilter.selecionadas();
 
-    if (empresas.size === 0) return brutos;
-    return brutos.filter(c => empresas.has(Number(c.id_empresa)));
+    const porEmpresa = empresas.size === 0
+      ? brutos
+      : brutos.filter(c => empresas.has(Number(c.id_empresa)));
+
+    return this._filtrarPorPessoa(porEmpresa);
   });
 
   private readonly _comBaixaAnt = computed(() => {
     const brutos   = this._todosBrutosAnt();
     const empresas = this.empresaFilter.selecionadas();
 
-    if (empresas.size === 0) return brutos;
-    return brutos.filter(c => empresas.has(Number(c.id_empresa)));
+    const porEmpresa = empresas.size === 0
+      ? brutos
+      : brutos.filter(c => empresas.has(Number(c.id_empresa)));
+
+    return this._filtrarPorPessoa(porEmpresa);
+  });
+
+  // ─── Opções para o dropdown de clientes (id_pessoa) ───────────
+  // Derivadas da BASE (empresa aplicada, mas sem o filtro de
+  // pessoa), para que a lista de opções não "encolha" conforme o
+  // usuário vai selecionando.
+  readonly opcoesPessoa = computed((): FiltroOpcao[] => {
+    const base = this._inadimplentesBase();
+    const map  = new Map<number, string>();
+
+    base.forEach(c => {
+      const id = Number(c.id_pessoa);
+      if (!map.has(id)) map.set(id, c.nome_pessoa ?? `Cliente #${id}`);
+    });
+
+    return Array.from(map.entries())
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
   });
 
   // ─── KPIs — computed reativo ──────────────────────────────────
@@ -156,7 +205,6 @@ export class InadimplenciaService {
     const ticketAtual    = qtdTitulosAtual    ? totalAtual    / qtdTitulosAtual    : 0;
     const ticketAnterior = qtdTitulosAnterior ? totalAnterior / qtdTitulosAnterior : 0;
 
-    console.log(qtdTitulosAtual)
     return {
       totalInadimplente: totalAtual,
       clientesInadimplentes: qtdAtual,
@@ -234,11 +282,14 @@ export class InadimplenciaService {
   });
 
   // ─── Clientes filtrados para a tabela — computed reativo ──────
+  // IMPORTANTE: usa _inadimplentesBase (empresa + sem baixa), e
+  // NÃO aplica o filtro de id_pessoa — a planilha sempre mostra
+  // todos os clientes, só respeitando busca e status.
   readonly clientesFiltrados = computed((): ClienteInadimplente[] => {
     const busca  = this.busca().toLowerCase().trim();
     const status = this.filtroStatus();
 
-    return this._inadimplentes().filter(c => {
+    return this._inadimplentesBase().filter(c => {
 
       if (busca) {
         const campos = [
@@ -344,6 +395,25 @@ export class InadimplenciaService {
   setFiltroStatus(v: string) { this.filtroStatus.set(v); }
   setPeriodo(v: string)      { this.periodo.set(v); }
   cobrarCliente(id: number)  { console.log('Cobrar:', id); }
+
+  // ─── Filtro de cliente (id_pessoa) — mesma convenção do
+  //     EmpresaFilterService: conjunto vazio == "todos" ─────────
+  togglePessoa(id: number): void {
+    const nova = new Set(this.filtroPessoas());
+    nova.has(id) ? nova.delete(id) : nova.add(id);
+    this.filtroPessoas.set(nova);
+  }
+
+  toggleTodasPessoas(): void {
+    const atual   = this.filtroPessoas();
+    const opcoes  = this.opcoesPessoa();
+
+    if (atual.size > 0 && atual.size === opcoes.length) {
+      this.filtroPessoas.set(new Set());
+    } else {
+      this.filtroPessoas.set(new Set(opcoes.map(o => o.id)));
+    }
+  }
 
   // ─── Helpers privados ────────────────────────────────────────
   private _var(atual: number, anterior: number): number {

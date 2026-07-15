@@ -20,7 +20,7 @@ import { AplicacaoMenu } from '../../shared/models/usuario.models';
       background: var(--surface); border-bottom: 1px solid var(--border);
       display: flex; align-items: center; padding: 0 20px;
       height: var(--topbar-h); gap: 4px; flex-shrink: 0;
-      position: relative; z-index: 100;
+      position: relative; z-index: 100; overflow-y: hidden;
     }
 
     .menu-btn {
@@ -29,7 +29,7 @@ import { AplicacaoMenu } from '../../shared/models/usuario.models';
     }
     @media (max-width: 768px) { .menu-btn { display: flex; } }
 
-    .tabs { display: flex; align-items: center; gap: 2px; height: 100%; overflow-x: auto; flex: 1; }
+    .tabs { display: flex; align-items: center; gap: 2px; height: 100%; flex: 1; }
     .tabs::-webkit-scrollbar { height: 0; }
     @media (max-width: 768px)  { .hide-mobile { display: none !important; } }
 

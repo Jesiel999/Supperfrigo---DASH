@@ -91,7 +91,7 @@ export class AuthService {
     localStorage.removeItem(EMPRESA_GLOBAL);
     this._token.set(null);
     this._usuario.set(null);
-    this.router.navigate(['/login']);
+    this.router.navigate(['']);
   }
 
   getToken() { return this._token(); }

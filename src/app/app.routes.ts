@@ -3,7 +3,7 @@ import { authGuard, permissaoGuard } from './auth/guards/auth.guard';
 
 export const routes: Routes = [
   {
-    path: 'login',
+    path: '',
     loadComponent: () => import('./auth/login/login').then(m => m.LoginComponent),
   },
   {

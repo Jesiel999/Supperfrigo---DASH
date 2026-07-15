@@ -395,10 +395,15 @@ export class PmpPmrService {
           new Map(
             pmpBrutos.map(c => [
               Number(c.id_empresa),
-              { codigo: Number(c.id_empresa), nome: c.nome_empresa }
+              {
+                codigo: Number(c.id_empresa),
+                nome: c.nome_empresa ?? 'Empresa sem nome'
+              }
             ])
           ).values()
-        ).sort((a, b) => a.nome.localeCompare(b.nome));
+        ).sort((a, b) =>
+          (a.nome ?? '').localeCompare(b.nome ?? '')
+        );
 
         this.empresaFilter.setDisponiveis(empresasUnicas);
 

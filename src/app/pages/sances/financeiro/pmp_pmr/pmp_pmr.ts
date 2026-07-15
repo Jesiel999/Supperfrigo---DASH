@@ -1,9 +1,14 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PmpPmrService } from '../../../../shared/services/pmp-pmr.service';
 import { KpiCardComponent } from '../../../../shared/components/pmp-pmr/kpi-card/kpi-card';
 import { DataTablePmrComponent } from '../../../../shared/components/pmp-pmr/data-table-pmr/data-table';
 import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/data-table-pmp/data-table';
+
+interface HelpItem {
+  titulo: string;
+  descricao: string;
+}
 
 @Component({
   selector: 'app-pmp-pmr',
@@ -45,6 +50,73 @@ import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/dat
               (change)="onDataFim($any($event.target).value)"
             />
             <button class="btn-filtrar" (click)="recarregar()">Filtrar</button>
+            <button
+                class="help-btn"
+                (click)="abrirAjuda()"
+                title="Ajuda do Dashboard">
+                <span>?</span>
+            </button>
+            @if (ajudaAberta()) {
+              <div class="help-backdrop" (click)="fecharAjuda()">
+                  <div class="help-modal" (click)="$event.stopPropagation()">
+                      <div class="help-header">
+                          <div>
+                              <div class="help-badge">
+                                  📊 Dashboard PMP & PMR
+                              </div>
+                              <h2>Como interpretar este Dashboard</h2>
+                              <p>
+                                  Entenda o significado de cada indicador apresentado
+                                  nesta tela e como utilizá-los na tomada de decisão.
+                              </p>
+                          </div>
+                          <button class="close-btn" (click)="fecharAjuda()">
+                              ✕
+                          </button>
+                      </div>
+                      <div class="help-body">
+                          @for(item of ajuda; track item.titulo){
+                              <div class="help-card">
+                                  <div class="help-icon">
+                                      @switch (item.titulo) {
+                                        @case ("PMP (Prazo Médio de Pagamento)") { ⏱️ }
+                                        @case ("PMR (Prazo Médio de Recebimento)") { 📈 }
+                                        @case ("Quantidade de Títulos") { 📄 }
+                                        @case ("Valor Médio") { 💰 }
+                                        @case ("Valor Total") { 💵 }
+                                        @case ("PMP por Fornecedor") { 🏢 }
+                                        @case ("PMR por Cliente") { 👥 }
+                                        @case ("Tabela de Títulos") { 📋 }
+                                        @case ("Última Atualização") { 🔄 }
+                                        @case ("Próxima Atualização") { ⏳ }
+                                        @case ("Filtros") { 🎛️ }
+                                        @default { ℹ️ }
+                                    }
+                                  </div>
+                                  <div>
+                                      <h4>{{item.titulo}}</h4>
+
+                                      <p>{{item.descricao}}</p>
+                                  </div>
+                              </div>
+                          }
+                      </div>
+                      <div class="help-footer">
+                          <div class="footer-info">
+                              <strong>Dica</strong>
+                              <span>
+                                  Todos os indicadores respeitam os filtros de período e empresas selecionadas.
+                              </span>
+                          </div>
+                          <button
+                              class="btn-entendi"
+                              (click)="fecharAjuda()">
+                              Entendi
+                          </button>
+                      </div>
+                  </div>
+              </div>
+              }
           </div>
         </div>
       </div>
@@ -231,6 +303,187 @@ import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/dat
     </div>
   `,
   styles: [`
+    .help-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.65);
+      backdrop-filter:blur(8px);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      z-index:9999;
+      animation:fadeIn .2s ease;
+  }
+
+  .help-modal{
+      width:850px;
+      max-width:95vw;
+      max-height:85vh;
+      overflow:hidden;
+      background:#141922;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:22px;
+      display:flex;
+      flex-direction:column;
+      box-shadow:
+          0 20px 60px rgba(0,0,0,.55);
+      animation:modalIn .25s ease;
+  }
+
+  .help-header{
+      padding:28px 30px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+  }
+
+  .help-badge{
+      display:inline-flex;
+      background:rgba(244,63,94,.15);
+      color:#f43f5e;
+      padding:5px 12px;
+      border-radius:50px;
+      font-size:12px;
+      margin-bottom:14px;
+  }
+
+  .help-header h2{
+      font-size:28px;
+      font-family:'Syne';
+      margin-bottom:8px;
+  }
+
+  .help-header p{
+      color:#9ca3af;
+      line-height:1.6;
+      max-width:600px;
+  }
+
+  .close-btn{
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      border:none;
+      background:rgba(255,255,255,.06);
+      color:white;
+      cursor:pointer;
+      transition:.2s;
+  }
+
+  .close-btn:hover{
+      background:#f43f5e;
+      transform:rotate(90deg);
+  }
+
+  .help-body{
+      flex:1;
+      overflow:auto;
+      padding:26px;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
+      gap:18px;
+  }
+
+  .help-card{
+      display:flex;
+      gap:18px;
+      background:#1a202c;
+      border:1px solid rgba(255,255,255,.05);
+      border-radius:16px;
+      padding:20px;
+      transition:.25s;
+  }
+
+  .help-card:hover{
+      transform:translateY(-4px);
+      border-color:#f43f5e;
+      box-shadow:0 10px 25px rgba(244,63,94,.12);
+  }
+
+  .help-icon{
+      width:52px;
+      height:52px;
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(244,63,94,.12);
+      font-size:24px;
+      flex-shrink:0;
+  }
+
+  .help-card h4{
+      margin:0;
+      font-size:15px;
+      color:white;
+      margin-bottom:8px;
+  }
+
+  .help-card p{
+      margin:0;
+      color:#9ca3af;
+      line-height:1.6;
+      font-size:13px;
+  }
+
+  .help-footer{
+      padding:20px 28px;
+      border-top:1px solid rgba(255,255,255,.06);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+  }
+
+  .footer-info{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+  }
+
+  .footer-info strong{
+      color:white;
+  }
+
+  .footer-info span{
+      color:#9ca3af;
+      font-size:13px;
+  }
+
+  .btn-entendi{
+      background:#f43f5e;
+      color:white;
+      border:none;
+      padding:10px 24px;
+      border-radius:10px;
+      font-weight:600;
+      cursor:pointer;
+      transition:.2s;
+  }
+
+  .btn-entendi:hover{
+      background:#e11d48;
+  }
+
+  @keyframes modalIn{
+      from{
+          opacity:0;
+          transform:translateY(20px) scale(.95);
+      }
+      to{
+          opacity:1;
+          transform:none;
+      }
+  }
+
+  @keyframes fadeIn{
+      from{
+          opacity:0;
+      }
+      to{
+          opacity:1;
+      }
+  }
     .page {
       display: flex;
       flex-direction: column;
@@ -315,6 +568,33 @@ import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/dat
 
     .btn-filtrar:hover {
       background: rgba(244, 63, 94, 0.25);
+    }
+
+    .help-btn{
+        width:34px;
+        height:34px;
+
+        border-radius:50%;
+
+        border:1px solid var(--border);
+
+        background:rgba(255,255,255,.05);
+
+        color:var(--muted);
+
+        cursor:pointer;
+
+        transition:.2s;
+
+        font-weight:700;
+
+        font-size:15px;
+    }
+
+    .help-btn:hover{
+        background:#f43f5e;
+        color:white;
+        border-color:#f43f5e;
     }
 
     /* ── Live badge ── */
@@ -632,6 +912,73 @@ import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/dat
 export class PmpPmrComponent implements OnInit {
   protected readonly svc = inject(PmpPmrService);
   abaAtiva: 'pmp' | 'pmr' = 'pmp';
+
+  readonly ajudaAberta = signal(false);
+
+  readonly ajuda: HelpItem[] = [
+    {
+      titulo: 'PMP (Prazo Médio de Pagamento)',
+      descricao:
+        'Representa o tempo médio, em dias, que a empresa leva para pagar seus fornecedores. Quanto maior o PMP, maior é o prazo utilizado para realizar os pagamentos. Calculo soma de todos os títulos pagar (data_baixa - data_emissao) / Quantidade de títulos pagar'
+    },
+    {
+      titulo: 'PMR (Prazo Médio de Recebimento)',
+      descricao:
+        'Representa o tempo médio, em dias, que a empresa leva para receber dos clientes após a emissão dos títulos. Calculo soma de todos os títulos receber (data_baixa - data_emissao) / Quantidade de títulos receber'
+    },
+    {
+      titulo: 'Quantidade de Títulos',
+      descricao:
+        'Quantidade total de títulos considerados no cálculo do período selecionado. Cada título representa um documento financeiro de pagamento ou recebimento.'
+    },
+    {
+      titulo: 'Valor Médio',
+      descricao:
+        'Valor financeiro médio dos títulos do período. É calculado dividindo o Valor Total pela Quantidade de Títulos.'
+    },
+    {
+      titulo: 'Valor Total',
+      descricao:
+        'Soma de todos os títulos considerados no período selecionado.'
+    },
+    {
+      titulo: 'PMP por Fornecedor',
+      descricao:
+        'Ranking dos fornecedores com maior volume financeiro. Também apresenta o prazo médio de pagamento e a quantidade de títulos de cada fornecedor.'
+    },
+    {
+      titulo: 'PMR por Cliente',
+      descricao:
+        'Ranking dos clientes com maior volume financeiro recebido. Também apresenta o prazo médio de recebimento e a quantidade de títulos.'
+    },
+    {
+      titulo: 'Tabela de Títulos',
+      descricao:
+        'Lista detalhada dos títulos utilizados nos cálculos do dashboard, permitindo consultar valores, datas, fornecedores ou clientes e demais informações financeiras.'
+    },
+    {
+      titulo: 'Última Atualização',
+      descricao:
+        'Data e horário da última execução do processo ETL responsável pela atualização das informações apresentadas neste dashboard.'
+    },
+    {
+      titulo: 'Próxima Atualização',
+      descricao:
+        'Previsão da próxima atualização automática dos dados. O dashboard é atualizado a cada 30 minutos.'
+    },
+    {
+      titulo: 'Filtros',
+      descricao:
+        'Todos os indicadores respeitam o período selecionado e as empresas escolhidas no filtro global do sistema.'
+    }
+  ];
+  abrirAjuda(): void {
+    this.ajudaAberta.set(true);
+  }
+
+  fecharAjuda(): void {
+    this.ajudaAberta.set(false);
+  }
 
   ngOnInit(): void {
     this.svc.carregar(this.svc.dataInicio(), this.svc.dataFim());

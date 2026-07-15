@@ -6,6 +6,7 @@ import { KpiCardInvertComponent }           from '../../../../shared/components/
 import { DonutChartComponent }        from '../../../../shared/components/inadimplencia/donut-chart/donut-chart';
 import { TopDevedoresBarComponent }   from '../../../../shared/components/inadimplencia/line-bar/line-bar';
 import { DataTableComponent }         from '../../../../shared/components/inadimplencia/data-table/data-table';
+import { MultiSelectFilterComponent } from '../../../../shared/components/multi-select-filter/pessoa_filter';
 
 interface HelpItem {
   titulo: string;
@@ -22,6 +23,7 @@ interface HelpItem {
     TopDevedoresBarComponent,
     DataTableComponent,
     KpiCardInvertComponent,
+    MultiSelectFilterComponent,
   ],
   template: `
     <div class="page">
@@ -41,6 +43,15 @@ interface HelpItem {
         </div>
 
         <div class="header-right">
+          <app-multi-select-filter
+            label="Cliente"
+            icon="🙋"
+            [opcoes]="svc.opcoesPessoa()"
+            [selecionados]="svc.filtroPessoas()"
+            (toggleId)="svc.togglePessoa($event)"
+            (toggleTodasEvt)="svc.toggleTodasPessoas()"
+          />
+
           <div class="periodo-picker">
             <input
               type="date"
@@ -60,9 +71,7 @@ interface HelpItem {
                 class="help-btn"
                 (click)="abrirAjuda()"
                 title="Ajuda do Dashboard">
-
                 <span>?</span>
-
             </button>
             @if (ajudaAberta()) {
               <div class="help-backdrop" (click)="fecharAjuda()">
@@ -70,7 +79,7 @@ interface HelpItem {
                       <div class="help-header">
                           <div>
                               <div class="help-badge">
-                                  📊 Dashboard Financeiro
+                                  📊 Dashboard Inadimplência
                               </div>
                               <h2>Como interpretar este Dashboard</h2>
                               <p>
@@ -220,7 +229,7 @@ interface HelpItem {
   `,
   styles: [`
 
-    .help-backdrop{
+  .help-backdrop{
       position:fixed;
       inset:0;
       background:rgba(0,0,0,.65);
@@ -344,97 +353,63 @@ interface HelpItem {
       font-size:13px;
   }
 
-.help-footer{
+  .help-footer{
+      padding:20px 28px;
+      border-top:1px solid rgba(255,255,255,.06);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+  }
 
-    padding:20px 28px;
+  .footer-info{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+  }
 
-    border-top:1px solid rgba(255,255,255,.06);
+  .footer-info strong{
+      color:white;
+  }
 
-    display:flex;
+  .footer-info span{
+      color:#9ca3af;
+      font-size:13px;
+  }
 
-    justify-content:space-between;
+  .btn-entendi{
+      background:#f43f5e;
+      color:white;
+      border:none;
+      padding:10px 24px;
+      border-radius:10px;
+      font-weight:600;
+      cursor:pointer;
+      transition:.2s;
+  }
 
-    align-items:center;
-}
+  .btn-entendi:hover{
+      background:#e11d48;
+  }
 
-.footer-info{
+  @keyframes modalIn{
+      from{
+          opacity:0;
+          transform:translateY(20px) scale(.95);
+      }
+      to{
+          opacity:1;
+          transform:none;
+      }
+  }
 
-    display:flex;
-
-    flex-direction:column;
-
-    gap:5px;
-}
-
-.footer-info strong{
-
-    color:white;
-}
-
-.footer-info span{
-
-    color:#9ca3af;
-
-    font-size:13px;
-}
-
-.btn-entendi{
-
-    background:#f43f5e;
-
-    color:white;
-
-    border:none;
-
-    padding:10px 24px;
-
-    border-radius:10px;
-
-    font-weight:600;
-
-    cursor:pointer;
-
-    transition:.2s;
-}
-
-.btn-entendi:hover{
-
-    background:#e11d48;
-}
-
-@keyframes modalIn{
-
-    from{
-
-        opacity:0;
-        transform:translateY(20px) scale(.95);
-
-    }
-
-    to{
-
-        opacity:1;
-        transform:none;
-
-    }
-
-}
-
-@keyframes fadeIn{
-
-    from{
-
-        opacity:0;
-
-    }
-
-    to{
-
-        opacity:1;
-
-    }
-
-}
+  @keyframes fadeIn{
+      from{
+          opacity:0;
+      }
+      to{
+          opacity:1;
+      }
+  }
     .page { display: flex; flex-direction: column; gap: 24px; }
 
     /* ── Header ── */
@@ -641,7 +616,7 @@ export class InadimplenciaComponent implements OnInit {
     {
       titulo: 'Filtros',
       descricao:
-        'Todos os indicadores respeitam o período e as empresas selecionadas no filtro superior.'
+        'O período afeta todos os indicadores, inclusive a tabela. Já o filtro de Cliente afeta os KPIs, o gráfico, os maiores devedores e as faixas de atraso — mas não filtra a tabela de títulos, que sempre mostra todos os clientes.'
     }
   ];
 

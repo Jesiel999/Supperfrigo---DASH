@@ -39,7 +39,7 @@ export function permissaoGuard(
     const router = inject(Router);
 
     if (!auth.logado()) {
-      router.navigate(['/home']);
+      router.navigate(['/login']);
       return false;
     }
 
