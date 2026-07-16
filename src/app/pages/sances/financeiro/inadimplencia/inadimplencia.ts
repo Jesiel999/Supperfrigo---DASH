@@ -4,6 +4,7 @@ import { LineChartComponent } from '../../../../shared/components/inadimplencia/
 import { KpiCardComponent }           from '../../../../shared/components/inadimplencia/kpi-card/kpi-card';
 import { KpiCardInvertComponent }           from '../../../../shared/components/inadimplencia/kpi-card-invert/kpi-card';
 import { DonutChartComponent }        from '../../../../shared/components/inadimplencia/donut-chart/donut-chart';
+import { DonutChartEmpComponent }        from '../../../../shared/components/inadimplencia/donut-chart-emp/donut-chart';
 import { TopDevedoresBarComponent }   from '../../../../shared/components/inadimplencia/line-bar/line-bar';
 import { DataTableComponent }         from '../../../../shared/components/inadimplencia/data-table/data-table';
 import { MultiSelectFilterComponent } from '../../../../shared/components/multi-select-filter/pessoa_filter';
@@ -20,6 +21,7 @@ interface HelpItem {
     KpiCardComponent,
     LineChartComponent,
     DonutChartComponent,
+    DonutChartEmpComponent,
     TopDevedoresBarComponent,
     DataTableComponent,
     KpiCardInvertComponent,
@@ -191,9 +193,9 @@ interface HelpItem {
               <p class="card-sub">% do valor total inadimplente</p>
             </div>
           </div>
-          <app-donut-chart
+          <app-donut-chart-emp
             [faixas]="svc.distribuicaoPorEmpresa()"
-            [totalClientes]="svc.kpis().clientesInadimplentes"
+            [totalTitulos]="svc.totalTitulos()"
           />
         </div>
       </div>

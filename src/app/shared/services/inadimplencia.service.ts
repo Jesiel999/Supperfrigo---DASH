@@ -225,7 +225,6 @@ export class InadimplenciaService {
   // ─── Gráfico — computed reativo ───────────────────────────────
   readonly pontosGrafico = computed((): PontoGrafico[] => {
     const inadAtual = this._inadimplentes();
-    const comBaixa  = this._comBaixa();
     const dias      = this._diasPeriodo();
     const inicio    = this._fmtInicio();
     const fim       = this._fmtFim();
@@ -342,6 +341,12 @@ export class InadimplenciaService {
         valor,
         percentual: total > 0 ? (valor / total) * 100 : 0,
       }));
+  });
+  // RETORNA O VALOR TOTAL INADIMPLENTE
+  readonly totalTitulos = computed(() => {
+    return new Set(
+      this._inadimplentes().map(t => t.numero_documento)
+    ).size;
   });
 
   // ─── Clientes filtrados para a tabela — computed reativo ──────
