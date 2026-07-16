@@ -9,7 +9,7 @@ export const routes: Routes = [
   {
     path: 'home',
     canActivate: [authGuard],
-    loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),
+    loadComponent: () => import('./layout/shell/shell-sfiltro').then(m => m.ShellComponent),
     children: [
       { path: '', loadComponent: () => import('./pages/home').then(m => m.HomeComponent) },
     ],

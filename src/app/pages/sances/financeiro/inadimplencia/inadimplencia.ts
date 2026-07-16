@@ -100,6 +100,8 @@ interface HelpItem {
                                           @case ("Quantidade de Títulos") { 📄 }
                                           @case ("Ticket Médio") { 💵 }
                                           @case ("Clientes Inadimplentes") { 👥 }
+                                          @case ("Valor por Empresa") { 🏆 }
+                                          @case ("Distribuição por Empresa") { ⏳ }
                                           @case ("Maiores Devedores") { 🏆 }
                                           @case ("Faixa de Atraso") { ⏳ }
                                           @case ("Evolução Diária") { 📈 }
@@ -615,6 +617,16 @@ export class InadimplenciaComponent implements OnInit {
       titulo: 'Clientes Inadimplentes',
       descricao:
         'Quantidade de clientes distintos que possuem pelo menos um título em atraso.'
+    },
+    {
+      titulo: 'Valor por Empresa',
+      descricao:
+        'Ranking por empresa do valor financeiro inadimplente.'
+    },
+    {
+      titulo: 'Distribuição por Empresa',
+      descricao:
+        'Distribuição dos títulos por Empresa.'
     },
     {
       titulo: 'Maiores Devedores',

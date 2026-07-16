@@ -265,7 +265,7 @@ export class InadimplenciaService {
 
     return Array.from(map.values())
       .sort((a, b) => b.valor - a.valor)
-      .slice(0, 10)
+      .slice(0, 1000)
       .map(item => ({
         nome:       item.nome,
         valor:      item.valor,

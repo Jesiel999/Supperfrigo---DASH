@@ -20,7 +20,7 @@ import { AplicacaoMenu } from '../../shared/models/usuario.models';
       background: var(--surface); border-bottom: 1px solid var(--border);
       display: flex; align-items: center; padding: 0 20px;
       height: var(--topbar-h); gap: 4px; flex-shrink: 0;
-      position: relative; z-index: 100; overflow-y: hidden;
+      position: relative; z-index: 9999; 
     }
 
     .menu-btn {

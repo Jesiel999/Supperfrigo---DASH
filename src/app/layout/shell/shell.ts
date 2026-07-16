@@ -27,8 +27,14 @@ import { AuthService }      from '../../auth/services/auth.service';
   `,
   styles: [`
     .shell { display:flex; height:100vh; overflow:hidden; background:var(--bg); }
-    .shell-main { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
-    .shell-content { flex:1; overflow-y:auto; padding:24px; }
+    .shell-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
+        min-width: 0;
+    }
+  .shell-content { flex:1; overflow-y:auto; padding:24px; }
     @media (max-width:1024px) { .shell-content { padding:16px; } }
     @media (max-width:600px)  { .shell-content { padding:12px; } }
   `],

@@ -1,5 +1,5 @@
 import {
-  Component, input, output, signal, HostListener,
+  Component, input, output, signal, computed, HostListener,
 } from '@angular/core';
 
 export interface FiltroOpcao {
@@ -31,11 +31,24 @@ export interface FiltroOpcao {
             </button>
           </div>
 
+          <div class="dd-search">
+            <input
+              type="text"
+              class="dd-search-input"
+              placeholder="Buscar..."
+              [value]="busca()"
+              (input)="onBuscaChange($any($event.target).value)"
+              (click)="$event.stopPropagation()"
+            />
+          </div>
+
           <div class="dd-list">
-            @if (opcoes().length === 0) {
-              <div class="dd-empty">Nenhuma opção disponível</div>
+            @if (opcoesFiltradas().length === 0) {
+              <div class="dd-empty">
+                {{ opcoes().length === 0 ? 'Nenhuma opção disponível' : 'Nenhum resultado encontrado' }}
+              </div>
             }
-            @for (op of opcoes(); track op.id) {
+            @for (op of opcoesFiltradas(); track op.id) {
               <label class="dd-item">
                 <input
                   type="checkbox"
@@ -99,6 +112,15 @@ export interface FiltroOpcao {
     .btn-text { background: none; border: none; color: #f43f5e; font-size: 11px; cursor: pointer; font-family: 'Outfit', sans-serif; padding: 0; }
     .btn-text:hover { text-decoration: underline; }
 
+    .dd-search { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .dd-search-input {
+      width: 100%; box-sizing: border-box;
+      background: rgba(255,255,255,.06); border: 1px solid var(--border);
+      border-radius: 7px; color: var(--text); font-size: 12px;
+      font-family: 'Outfit', sans-serif; padding: 6px 10px; outline: none;
+    }
+    .dd-search-input:focus { border-color: #f43f5e; }
+
     .dd-list { max-height: 240px; overflow-y: auto; padding: 6px 0; }
     .dd-list::-webkit-scrollbar { width: 4px; }
     .dd-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
@@ -126,6 +148,18 @@ export class MultiSelectFilterComponent {
   readonly toggleTodasEvt = output<void>();
 
   readonly aberto = signal(false);
+  readonly busca  = signal<string>('');   // 🆕 busca local do dropdown
+
+  // 🆕 mesmo padrão do clientesFiltrados: filtra por nome ou id
+  readonly opcoesFiltradas = computed((): FiltroOpcao[] => {
+    const termo = this.busca().toLowerCase().trim();
+    if (!termo) return this.opcoes();
+
+    return this.opcoes().filter(op =>
+      op.nome.toLowerCase().includes(termo) ||
+      String(op.id).includes(termo)
+    );
+  });
 
   readonly todasSelecionadas = () =>
     this.selecionados().size === 0 || this.selecionados().size === this.opcoes().length;
@@ -133,6 +167,10 @@ export class MultiSelectFilterComponent {
   toggleDropdown(e: Event): void {
     e.stopPropagation();
     this.aberto.update(v => !v);
+  }
+
+  onBuscaChange(v: string): void {   // 🆕
+    this.busca.set(v);
   }
 
   onToggle(id: number): void {
@@ -146,5 +184,6 @@ export class MultiSelectFilterComponent {
   @HostListener('document:click')
   fechar(): void {
     this.aberto.set(false);
+    this.busca.set('');   
   }
 }
