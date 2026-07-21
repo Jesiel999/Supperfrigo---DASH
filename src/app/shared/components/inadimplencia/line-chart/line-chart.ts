@@ -2,6 +2,7 @@ import { Component, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PontoGrafico } from '../../../models/financeiro.models';
 import { LOCALE_ID } from '@angular/core';
+import { ValueFormatterFactory } from '../../../formaters/value-formaters';
 
 @Component({
   selector: 'app-line-chart',
@@ -57,7 +58,7 @@ import { LOCALE_ID } from '@angular/core';
         @if (hover && hoverIndex !== null) {
           <circle
             [attr.cx]="getX(hoverIndex)"
-            [attr.cy]="getY(hover.inadimplente)"
+            [attr.cy]="getY(hover.valor)"
             r="5"
             fill="#f43f5e"
           />
@@ -66,26 +67,32 @@ import { LOCALE_ID } from '@angular/core';
     </div>
     
     @if (hover) {
-      <div class="tooltip"
-          [style.left.px]="mouse.x + 200"
-          [style.top.px]="mouse.y + 450">
-
+      <div
+        class="tooltip"
+        [class.tooltip--left]="tooltipSide === 'left'"
+        [style.left.px]="tooltip.x"
+        [style.top.px]="tooltip.y"
+      >
         <div class="title">{{ formatarData(hover.data) }}</div>
-
         <div class="row">
-          <span>Inadimplente</span>
-          <b>R$ {{ hover.inadimplente | number:'1.2-2' }}</b>
+          <span>{{ hover.label ?? 'Valor' }}</span>
+          <b>{{ formatarValor(hover) }}</b>
         </div>
       </div>
     }
     
   `,
   styles: [`
-    .chart-wrap { position: relative; width: 100%; height: 210px; }
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      overflow: visible; 
+    }
     .chart-svg  { width: 100%; height: 100%; overflow: visible; }
     .tooltip {
-      position: absolute;
-      transform: translate(-50%, -120%);
+      position: fixed;                     
+      transform: translate(0, -50%);       
       background: rgba(15, 23, 42, 0.95);
       border: 1px solid rgba(255,255,255,0.08);
       padding: 10px 12px;
@@ -95,6 +102,11 @@ import { LOCALE_ID } from '@angular/core';
       z-index: 10000;
       pointer-events: none;
       min-width: 160px;
+      transition: left 0.05s linear, top 0.05s linear;
+    }
+
+    .tooltip--left {
+      transform: translate(-100%, -50%);   /* joga a caixa toda pra esquerda do cursor */
     }
 
     .tooltip .title {
@@ -128,6 +140,11 @@ export class LineChartComponent {
 
   protected readonly viewBox = `0 0 ${this.width} ${this.height}`;
 
+  tooltip = {
+    x: 0,
+    y: 0
+  };
+
   private readonly chartW = computed(() =>
     this.width - this.paddingLeft - this.paddingRight
   );
@@ -136,7 +153,7 @@ export class LineChartComponent {
   );
 
   private readonly maxVal = computed(() => {
-    const all = this.pontos().flatMap((p) => [p.inadimplente]);
+    const all = this.pontos().flatMap((p) => p.valor);
     return Math.max(...all, 1);
   });
 
@@ -154,31 +171,31 @@ export class LineChartComponent {
     }));
   });
 
-  private buildLine(key: 'inadimplente'): string {
+  private buildLine(): string {
     const pts = this.pontos();
     return pts
-      .map((p, i) => `${i === 0 ? 'M' : 'L'}${this.toX(i, pts.length)},${this.toY(p[key])}`)
+      .map((p, i) => `${i === 0 ? 'M' : 'L'}${this.toX(i, pts.length)},${this.toY(p.valor)}`)
       .join(' ');
   }
 
-  private buildArea(key: 'inadimplente'): string {
-    const pts   = this.pontos();
+  private buildArea(): string {
+    const pts = this.pontos();
     const total = pts.length;
     const baseY = this.paddingTop + this.chartH();
-    const line  = pts.map((p, i) => `${this.toX(i, total)},${this.toY(p[key])}`).join(' L');
+    const line = pts.map((p, i) => `${this.toX(i, total)},${this.toY(p.valor)}`).join(' L');
     return `M${line} L${this.toX(total - 1, total)},${baseY} L${this.toX(0, total)},${baseY} Z`;
   }
 
-  protected readonly lineInad = computed(() => this.buildLine('inadimplente'));
-  protected readonly areaInad = computed(() => this.buildArea('inadimplente')); 
+  protected readonly lineInad = computed(() => this.buildLine());
+  protected readonly areaInad = computed(() => this.buildArea()); 
 
   protected readonly lastPoint = computed(() => {
     const pts = this.pontos();
     if (!pts.length) return null;
     const last = pts[pts.length - 1];
     return {
-      x     : this.toX(pts.length - 1, pts.length),
-      yInad : this.toY(last.inadimplente),
+      x: this.toX(pts.length - 1, pts.length),
+      yInad: this.toY(last.valor),
     };
   });
 
@@ -207,36 +224,63 @@ export class LineChartComponent {
 
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-
     this.mouse = { x, y };
 
     const pts = this.pontos();
     if (!pts.length) return;
 
+    const scaleX = rect.width / this.width;
+
     const chartWidth = this.width - this.paddingLeft - this.paddingRight;
-
-    const relativeX = x - this.paddingLeft;
-
+    const relativeX = (x / scaleX) - this.paddingLeft;
     const ratio = relativeX / chartWidth;
     const rawIndex = ratio * (pts.length - 1);
 
     const left = Math.floor(rawIndex);
     const right = Math.ceil(rawIndex);
-
-    // escolhe o mais próximo real
-    const index =
-    (rawIndex - left < right - rawIndex) ? left : right;
-
+    const index = (rawIndex - left < right - rawIndex) ? left : right;
     const safeIndex = Math.max(0, Math.min(index, pts.length - 1));
 
     this.hoverIndex = safeIndex;
     this.hover = pts[safeIndex];
+
+    const TOOLTIP_W = 180;
+    const TOOLTIP_H = 64;
+    const OFFSET    = 16; 
+    const MARGEM    = 8; 
+
+    const cursorX = event.clientX;
+    const cursorY = event.clientY;
+
+    const cabeADireita = cursorX + OFFSET + TOOLTIP_W + MARGEM <= window.innerWidth;
+    this.tooltipSide = cabeADireita ? 'right' : 'left';
+
+    let tooltipX = cabeADireita
+      ? cursorX + OFFSET
+      : cursorX - OFFSET;
+
+    let tooltipY = cursorY;
+    const metadeAltura = TOOLTIP_H / 2;
+
+    if (tooltipY - metadeAltura < MARGEM) {
+      tooltipY = metadeAltura + MARGEM;
+    } else if (tooltipY + metadeAltura > window.innerHeight - MARGEM) {
+      tooltipY = window.innerHeight - metadeAltura - MARGEM;
+    }
+
+    this.tooltip = { x: tooltipX, y: tooltipY };
   }
+
+  tooltipSide: 'left' | 'right' = 'right';
   
   // Formatar data
   formatarData(data: string): string {
     const [ano, mes, dia] = data.split('-');
     return `${dia}/${mes}/${ano}`;
+  }
+
+  protected formatarValor(p: PontoGrafico): string {
+    return ValueFormatterFactory.get(p.formatador).format(p.valor);
   }
 
   onMouseLeave() {

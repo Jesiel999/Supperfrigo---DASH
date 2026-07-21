@@ -46,15 +46,9 @@ export class InadimplenciaService {
   readonly carregando   = signal<boolean>(false);
 
   // Conjunto vazio == "todos" (sem restrição) — mesma convenção do
-  // EmpresaFilterService. Filtra por id_pessoa em TODO o escopo
-  // (KPIs, gráfico, maiores devedores, faixas de atraso) — EXCETO
-  // na planilha/tabela, que continua mostrando todos os clientes
-  // (respeitando apenas empresa + busca + status).
   readonly filtroPessoas = signal<Set<number>>(new Set());
 
   // ─── Dados BRUTOS vindos da API (nunca filtrados) ─────────────
-  // Separar bruto do filtrado é o ponto central da correção.
-  // Tudo que depende de filtro deve ser computed, não calculado no subscribe.
   private readonly _todosBrutos      = signal<ClienteInadimplente[]>([]);
   private readonly _todosBrutosAnt   = signal<ClienteInadimplente[]>([]);
   private readonly _diasPeriodo      = signal<string[]>([]);
@@ -112,8 +106,6 @@ export class InadimplenciaService {
   );
 
   // ─── Filtro de empresa aplicado reativamente (BASE — sem id_pessoa) ──
-  // Esta é a base usada pela TABELA (planilha), que não deve ser
-  // afetada pelo filtro de cliente/id_pessoa.
   private readonly _inadimplentesBase = computed(() => {
     const brutos   = this._todosBrutos();
     const empresas = this.empresaFilter.selecionadas();
@@ -135,8 +127,6 @@ export class InadimplenciaService {
   });
 
   // ─── Filtro de id_pessoa aplicado por cima da base ────────────
-  // Usado em TUDO (KPIs, gráfico, maiores devedores, faixas de
-  // atraso) — menos na tabela, que usa a base diretamente.
   private _filtrarPorPessoa(lista: ClienteInadimplente[]): ClienteInadimplente[] {
     const pessoas = this.filtroPessoas();
     if (pessoas.size === 0) return lista;
@@ -151,32 +141,7 @@ export class InadimplenciaService {
     this._filtrarPorPessoa(this._inadimplentesBaseAnt())
   );
 
-  private readonly _comBaixa = computed(() => {
-    const brutos   = this._todosBrutos();
-    const empresas = this.empresaFilter.selecionadas();
-
-    const porEmpresa = empresas.size === 0
-      ? brutos
-      : brutos.filter(c => empresas.has(Number(c.id_empresa)));
-
-    return this._filtrarPorPessoa(porEmpresa);
-  });
-
-  private readonly _comBaixaAnt = computed(() => {
-    const brutos   = this._todosBrutosAnt();
-    const empresas = this.empresaFilter.selecionadas();
-
-    const porEmpresa = empresas.size === 0
-      ? brutos
-      : brutos.filter(c => empresas.has(Number(c.id_empresa)));
-
-    return this._filtrarPorPessoa(porEmpresa);
-  });
-
   // ─── Opções para o dropdown de clientes (id_pessoa) ───────────
-  // Derivadas da BASE (empresa aplicada, mas sem o filtro de
-  // pessoa), para que a lista de opções não "encolha" conforme o
-  // usuário vai selecionando.
   readonly opcoesPessoa = computed((): FiltroOpcao[] => {
     const base = this._inadimplentesBase();
     const map  = new Map<number, string>();
@@ -221,54 +186,117 @@ export class InadimplenciaService {
       variacaoTitulos: this._var(qtdTitulosAtual, qtdTitulosAnterior),
     };
   });
+  readonly granularidadeGrafico = signal<'dia' | 'mes'>('dia');
+  readonly metricaGrafico       = signal<'valor' | 'clientes'>('valor');
+
+  setGranularidadeGrafico(v: 'dia' | 'mes'): void { this.granularidadeGrafico.set(v) };
+  setMetricaGrafico(v: 'valor' | 'clientes'): void { this.metricaGrafico.set(v) };
+
+  private _chaveData(data: string): string {
+    return this.granularidadeGrafico() === 'mes' ? data.slice(0, 7) : data;
+  }
+
+  private _formatarLabelMes(chave: string): string {
+    const [ano, mes] = chave.split('-');
+    return `${mes}/${ano}`;
+  }
+
+  private _chavesPeriodo(): string[] {
+    const dias = this._diasPeriodo();
+    if (this.granularidadeGrafico() === 'dia') return dias;
+
+    const meses = new Set(dias.map(d=>d.slice(0, 7)));
+    return Array.from(meses).sort();
+  }
+
 
   // ─── Gráfico — computed reativo ───────────────────────────────
   readonly pontosGrafico = computed((): PontoGrafico[] => {
     const inadAtual = this._inadimplentes();
-    const dias      = this._diasPeriodo();
-    const inicio    = this._fmtInicio();
-    const fim       = this._fmtFim();
+    const inicio      = this._fmtInicio();
+    const fim    = this._fmtFim();
+    const chaves       = this._chavesPeriodo();
 
-    if (!dias.length || !inicio || !fim) return [];
+    if (!chaves.length || !inicio || !fim) return [];
 
     const dtInicio = this._parseDate(inicio);
     const dtFim    = this._parseDate(fim);
+    const mapa     = new Map<string, number>();
 
-    const evolucaoMap   = new Map<string, number>();
-
-    // Linha vermelha: soma valor_total por data_vencimento, APENAS de quem não tem data_baixa
+    // Linha vermelha: soma clientes por data_vencimento, APENAS de quem não tem data_baixa
     inadAtual.forEach(c => {
       const dt = this._parseDate(c.data_vencimento);
       if (dt < dtInicio || dt > dtFim) return;
-      evolucaoMap.set(c.data_vencimento, (evolucaoMap.get(c.data_vencimento) ?? 0) + c.valor_total);
+      const chave = this._chaveData(c.data_vencimento);
+      mapa.set(chave, (mapa.get(chave) ?? 0) + c.valor_total)
     });
 
 
-    return dias.map(d => ({
-      data:         d,
-      inadimplente: evolucaoMap.get(d)  ?? 0,
+    return chaves.map(k => ({
+      data: this.granularidadeGrafico() === 'mes' ? this._formatarLabelMes(k) : k,
+      valor: mapa.get(k) ?? 0,
+      label: 'Inadimplente',
+      formatador: 'currency',
     }));
   });
+  // ─── Evolução por CLIENTES DISTINTOS (dia ou mês) ─────────────
+  // conta clientes únicos por bucket usando Set.
+  readonly pontosGraficoClientes = computed((): PontoGrafico[] => {
+    const inadAtual = this._inadimplentes();
+    const inicio    = this._fmtInicio();
+    const fim       = this._fmtFim();
+    const chaves    = this._chavesPeriodo();
+
+    if (!chaves.length || !inicio || !fim) return [];
+
+    const dtInicio = this._parseDate(inicio);
+    const dtFim    = this._parseDate(fim);
+    const mapaSets = new Map<string, Set<number>>();
+
+    inadAtual.forEach(c => {
+      const dt = this._parseDate(c.data_vencimento);
+      if (dt < dtInicio || dt > dtFim) return;
+      const chave = this._chaveData(c.data_vencimento);
+      if (!mapaSets.has(chave)) mapaSets.set(chave, new Set());
+      mapaSets.get(chave)!.add(Number(c.id_pessoa));
+    });
+
+    return chaves.map(k => ({
+      data: this.granularidadeGrafico() === 'mes' ? this._formatarLabelMes(k) : k,
+      valor: mapaSets.get(k)?.size ?? 0,
+      label: 'Clientes',
+      formatador: 'number',
+    }));
+  });
+
+  // ─── Ponto único usado pelo template, conforme a métrica ativa ─
+  readonly pontosGraficoAtivo = computed((): PontoGrafico[] =>
+    this.metricaGrafico() === 'valor' ? this.pontosGrafico() : this.pontosGraficoClientes()
+  );
 
   // ─── Top devedores — computed reativo ────────────────────────
   readonly topDevedores = computed((): MaioresDevedores[] => {
     const inadAtual  = this._inadimplentes();
     const totalAtual = inadAtual.reduce((s, c) => s + c.valor_total, 0);
 
-    const map = new Map<string, { nome: string; valor: number }>();
+    const map = new Map<string, { nome: string; valor: number; somaDias: number; qtd: number }>();
     inadAtual.forEach(c => {
       const key = c.nome_pessoa ?? 'Desconhecido';
-      if (!map.has(key)) map.set(key, { nome: key, valor: 0 });
-      map.get(key)!.valor += c.valor_total;
+      if (!map.has(key)) map.set(key, { nome: key, valor: 0, somaDias: 0, qtd: 0 });
+      const item = map.get(key)!;
+      item.valor    += c.valor_total;
+      item.somaDias += c.dias_atraso;
+      item.qtd      += 1;
     });
 
     return Array.from(map.values())
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 1000)
       .map(item => ({
-        nome:       item.nome,
-        valor:      item.valor,
-        percentual: totalAtual > 0 ? (item.valor / totalAtual) * 100 : 0,
+        nome:            item.nome,
+        valor:           item.valor,
+        percentual:      totalAtual > 0 ? (item.valor / totalAtual) * 100 : 0,
+        diasAtrasoMedio: item.qtd > 0 ? Math.round(item.somaDias / item.qtd) : 0,  
       }));
   });
 
@@ -286,8 +314,6 @@ export class InadimplenciaService {
   });
 
   // ─── Agrupamento de filiais — pega só o primeiro "nome" da
-  // razão social para consolidar filiais sob a mesma matriz.
-  // Ex: "ACME COMERCIO FILIAL 02" e "ACME COMERCIO MATRIZ" → "ACME".
   private _nomeGrupoEmpresa(nome: string | null | undefined): string {
     if (!nome) return 'Sem empresa';
     const primeiro = nome.trim().split(/\s+/)[0];
@@ -295,10 +321,6 @@ export class InadimplenciaService {
   }
 
   // ─── Distribuição por empresa (pizza) — computed reativo ─────
-  // Agrupado pelo primeiro nome (filiais consolidadas). Top 8
-  // grupos por valor inadimplente no período; se houver mais que
-  // isso, os demais não aparecem na fatia (ajuste o slice(0, 8)
-  // se quiser um bucket "Outras").
   readonly distribuicaoPorEmpresa = computed((): FaixaAtraso[] => {
     const inad  = this._inadimplentes();
     const total = inad.reduce((s, c) => s + c.valor_total, 0) || 1;
@@ -320,39 +342,38 @@ export class InadimplenciaService {
   });
 
   // ─── Valor total por empresa (barra) — computed reativo ──────
-  // Mesmo agrupamento pelo primeiro nome (filiais consolidadas).
-  // Reaproveita o formato MaioresDevedores para usar o mesmo
-  // app-top-devedores-bar já existente na tela.
   readonly valorPorEmpresa = computed((): MaioresDevedores[] => {
-    const inad  = this._inadimplentes();
-    const total = inad.reduce((s, c) => s + c.valor_total, 0);
+    const inadAtual  = this._inadimplentes();
+    const totalAtual = inadAtual.reduce((s, c) => s + c.valor_total, 0);
 
-    const map = new Map<string, number>();
-    inad.forEach(c => {
-      const grupo = this._nomeGrupoEmpresa(c.nome_empresa);
-      map.set(grupo, (map.get(grupo) ?? 0) + c.valor_total);
+    const map = new Map<string, { nome: string; valor: number; somaDias: number; qtd: number }>();
+    inadAtual.forEach(c => {
+      const key = this._nomeGrupoEmpresa(c.nome_empresa);
+      if (!map.has(key)) map.set(key, { nome: key, valor: 0, somaDias: 0, qtd: 0 });
+      
+      const item = map.get(key)!;
+      item.valor    += c.valor_total;
+      item.somaDias += c.dias_atraso;
+      item.qtd      += 1;
     });
 
-    return Array.from(map.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([nome, valor]) => ({
-        nome,
-        valor,
-        percentual: total > 0 ? (valor / total) * 100 : 0,
+    return Array.from(map.values())
+      .sort((a, b) => b.valor - a.valor)
+      .slice(0, 1000)
+      .map(item => ({
+        nome:            item.nome,
+        valor:           item.valor,
+        percentual:      totalAtual > 0 ? (item.valor / totalAtual) * 100 : 0,
+        diasAtrasoMedio: item.qtd > 0 ? Math.round(item.somaDias / item.qtd) : 0, 
       }));
   });
+  
   // RETORNA O VALOR TOTAL INADIMPLENTE
   readonly totalTitulos = computed(() => {
-    return new Set(
-      this._inadimplentes().map(t => t.numero_documento)
-    ).size;
+    return this._inadimplentes().length;
   });
 
   // ─── Clientes filtrados para a tabela — computed reativo ──────
-  // IMPORTANTE: usa _inadimplentesBase (empresa + sem baixa), e
-  // NÃO aplica o filtro de id_pessoa — a planilha sempre mostra
-  // todos os clientes, só respeitando busca e status.
   readonly clientesFiltrados = computed((): ClienteInadimplente[] => {
     const busca  = this.busca().toLowerCase().trim();
     const status = this.filtroStatus();
@@ -375,7 +396,6 @@ export class InadimplenciaService {
   });
 
   // ─── carregar — APENAS busca e armazena dados brutos ─────────
-  // Não calcula mais nada. Todo cálculo fica nos computeds acima.
   carregar(dataInicio?: string, dataFim?: string): void {
     const inicioAtual = dataInicio ?? this.dataInicio();
     const fimAtual    = dataFim    ?? this.dataFim();
@@ -391,7 +411,6 @@ export class InadimplenciaService {
     const fmt = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-    // Armazena período para os computeds usarem
     this._fmtInicio.set(fmt(dtInicioAtual));
     this._fmtFim.set(fmt(dtFimAtual));
 
@@ -440,7 +459,6 @@ export class InadimplenciaService {
       status_financeiro:        item.status_financeiro,
       valor_total:              Number(item.valor_total ?? 0),
       data_vencimento:          item.data_vencimento,
-      data_baixa:               item.data_baixa ?? null,
       numero_documento:         item.numero_documento,
       ordem:                    item.ordem,
       descricao_forma_cobranca: item.descricao_forma_cobranca,
@@ -465,7 +483,6 @@ export class InadimplenciaService {
   cobrarCliente(id: number)  { console.log('Cobrar:', id); }
 
   // ─── Filtro de cliente (id_pessoa) — mesma convenção do
-  //     EmpresaFilterService: conjunto vazio == "todos" ─────────
   togglePessoa(id: number): void {
     const nova = new Set(this.filtroPessoas());
     nova.has(id) ? nova.delete(id) : nova.add(id);

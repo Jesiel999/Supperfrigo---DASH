@@ -8,6 +8,7 @@ import { DonutChartEmpComponent }        from '../../../../shared/components/ina
 import { TopDevedoresBarComponent }   from '../../../../shared/components/inadimplencia/line-bar/line-bar';
 import { DataTableComponent }         from '../../../../shared/components/inadimplencia/data-table/data-table';
 import { MultiSelectFilterComponent } from '../../../../shared/components/multi-select-filter/pessoa_filter';
+import { ExcelExportService } from '../../../../shared/services/excel-export.service';
 
 interface HelpItem {
   titulo: string;
@@ -207,6 +208,9 @@ interface HelpItem {
               <h2 class="card-title">Maiores Devedores</h2>
               <p class="card-sub">Por valor total inadimplente</p>
             </div>
+            <button class="btn-export-mini" (click)="exportarMaioresDevedores()">
+              📊 Excel
+            </button>
           </div>
           <app-top-devedores-bar [data]="svc.topDevedores()" />
         </div>
@@ -225,21 +229,39 @@ interface HelpItem {
         </div>    
       </div>
 
+            
       <div class="card chart-card">
         <div class="card-header">
           <div>
-            <h2 class="card-title">Evolução Diária — Inadimplência</h2>
+            <h2 class="card-title">
+              Evolução {{ svc.granularidadeGrafico() === 'mes' ? 'Mensal' : 'Diária' }} — Inadimplência
+            </h2>
           </div>
-          <div class="legend">
-            <div class="legend-item">
-              <span class="legend-dot" style="background:#f43f5e"></span>
-              Inadimplente
-            </div>
+
+          <div class="chart-controls">
+            <select
+              class="select-mini"
+              [value]="svc.metricaGrafico()"
+              (change)="onMetricaChange($any($event.target).value)"
+            >
+              <option class="option-card" value="valor">Valor (R$)</option>
+              <option class="option-card" value="clientes">Clientes</option>
+            </select>
+
+            <select
+              class="select-mini"
+              [value]="svc.granularidadeGrafico()"
+              (change)="onGranularidadeChange($any($event.target).value)"
+            >
+              <option class="option-card" value="dia">Por dia</option>
+              <option class="option-card" value="mes">Por mês</option>
+            </select>
           </div>
         </div>
-        <app-line-chart [pontos]="svc.pontosGrafico()" />
+
+        <app-line-chart [pontos]="svc.pontosGraficoAtivo()" />
       </div>
-      
+
       <div class="card">
         <div class="card-header">
           <div>
@@ -248,6 +270,10 @@ interface HelpItem {
               {{ svc.clientesFiltrados().length }} títulos · ordenado por vencimento
             </p>
           </div>
+          
+            <button class="btn-export-mini" (click)="exportarTitulosInadimplentes()">
+              📊 Excel
+            </button>
         </div>
 
         <app-data-table [clientes]="svc.clientesFiltrados()" />
@@ -498,6 +524,14 @@ interface HelpItem {
       font-size:15px;
   }
 
+  .chart-controls { display: flex; gap: 8px; }
+  .select-mini {
+    background: rgba(255,255,255,.06); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 12px;
+    font-family: 'Outfit', sans-serif; padding: 5px 10px; outline: none;
+    cursor: pointer;
+  }
+
   .help-btn:hover{
       background:#f43f5e;
       color:white;
@@ -561,6 +595,15 @@ interface HelpItem {
       border-radius: 8px; color: var(--text); font-size: 12px;
       font-family: 'Outfit', sans-serif; padding: 6px 12px; outline: none; width: 190px;
     }
+    
+    /* ── Botão de exportar excel ── */
+    .btn-export-mini {
+      background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.3);
+      color: #f43f5e; font-size: 11px; padding: 5px 12px; border-radius: 6px;
+      cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 500;
+      transition: background .2s;
+    }
+    .btn-export-mini:hover { background: rgba(244,63,94,.22); }
     .select-status {
       background: rgba(255,255,255,.06); border: 1px solid var(--border);
       border-radius: 8px; color: #34d399; font-size: 12px;
@@ -595,6 +638,14 @@ interface HelpItem {
   `],
 })
 export class InadimplenciaComponent implements OnInit {
+  onGranularidadeChange(v: string): void {
+    this.svc.setGranularidadeGrafico(v as 'dia' | 'mes');
+  }
+
+  onMetricaChange(v: string): void {
+    this.svc.setMetricaGrafico(v as 'valor' | 'clientes');
+  }
+
   protected readonly svc = inject(InadimplenciaService);
 
   readonly ajudaAberta = signal(false);
@@ -643,7 +694,7 @@ export class InadimplenciaComponent implements OnInit {
     {
       titulo: 'Evolução Diária',
       descricao:
-        'Mostra a evolução diária dos valores inadimplentes considerando a data de vencimento.'
+        'Mostra a evolução diária dos valores/clientes inadimplentes considerando a data de vencimento. Onde é possível filtrar por Mês/Dia.'
     },
     {
       titulo: 'Última Atualização',
@@ -675,4 +726,34 @@ export class InadimplenciaComponent implements OnInit {
   recarregar(): void {
     this.svc.carregar(this.svc.dataInicio(), this.svc.dataFim());
   }
+
+  private readonly excelExport = inject(ExcelExportService);
+
+  exportarMaioresDevedores(): void {
+    const dados = this.svc.topDevedores().map(d => ({
+      'Cliente': d.nome,
+      'Valor Total (R$)': d.valor,
+      'Percentual (%)': d.percentual.toFixed(2),
+      'Dias de Atraso (média)': d.diasAtrasoMedio,
+    }));
+
+    this.excelExport.exportar(dados, 'maiores_devedores');
+  }
+
+  exportarTitulosInadimplentes(): void {
+    const dados = this.svc.clientesFiltrados().map(c => ({
+      'Empresa': c.nome_empresa,
+      'Cliente': c.nome_pessoa,
+      'Documento': c.documento,
+      'Ordem': c.ordem,
+      'Cobrança': c.descricao_forma_cobranca,
+      'Valor Total (R$)': c.valor_total,
+      'Vencimento': c.data_vencimento,
+      'Dias em Atraso': c.dias_atraso,
+      'Status': c.status
+    }));
+
+    this.excelExport.exportar(dados, 'titulos_inadimplentes');
+  }
+
 }

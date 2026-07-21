@@ -22,6 +22,7 @@ import { MaioresDevedores } from '../../../models/financeiro.models';
           </div>
           <div class="bar-values">
             <span class="valor">{{ formatarValor(item.valor) }}</span>
+            <span class="qtd">{{ item.diasAtrasoMedio }} Dias</span>
             <span class="pct">{{ item.percentual.toFixed(1) }}%</span>
           </div>
         </div>
@@ -39,12 +40,15 @@ import { MaioresDevedores } from '../../../models/financeiro.models';
       overflow-y: auto;
       padding-right: 6px;
     }
+    
     .bar-row {
       display: grid;
-      grid-template-columns: 180px 1fr 110px;
+      grid-template-columns:
+        minmax(120px, 180px)
+        minmax(80px, 1fr)
+        minmax(120px, auto);
       align-items: center;
       gap: 10px;
-      font-size: 12px;
     }
 
     .bar-label {
@@ -94,6 +98,14 @@ import { MaioresDevedores } from '../../../models/financeiro.models';
       color: #f43f5e;
       font-weight: 600;
       white-space: nowrap;
+    }
+
+    .qtd {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted, #64748b);
+      min-width: 42px;
+      text-align: right;
     }
 
     .pct {

@@ -30,9 +30,13 @@ export interface KpiInadimplencia {
   variacaoTotal: number; variacaoClientes: number;
   variacaoTicket: number; variacaoTitulos: number;
 }
-export interface PontoGrafico { data: string; inadimplente: number;}
-export interface MaioresDevedores {nome: string; valor: number; percentual: number;
+export interface PontoGrafico {
+  data: string;
+  valor: number;
+  label?: string;
+  formatador?: 'currency' | 'number' | 'percent';
 }
+export interface MaioresDevedores {nome: string; valor: number; percentual: number; diasAtrasoMedio: number;}
 
 export interface DonutSegment {
   label: string;
