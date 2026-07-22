@@ -1,6 +1,7 @@
 // ─── Inadimplência 
 export type StatusInadimplencia = 'VENCIDO' | 'PAGO' | 'EM ABERTO';
 export interface ClienteInadimplente {
+  codigo: number;
   id: number;
   id_empresa: number;
   nome_empresa: string;
@@ -91,6 +92,7 @@ export interface LancamentoFluxo {
 // ─── API
 export interface ApiResponse<T> { total: number; data: T[]; }
 export interface InadimplenciaApiItem {
+  codigo: number;
   id_empresa: number; 
   nome_empresa: string; 
   id_pessoa: number;

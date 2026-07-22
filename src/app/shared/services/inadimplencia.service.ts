@@ -382,6 +382,7 @@ export class InadimplenciaService {
 
       if (busca) {
         const campos = [
+          c.codigo,
           c.nome_pessoa,          c.nome_empresa,
           c.numero_documento,     c.ordem,
           c.origem,               c.descricao_forma_cobranca,
@@ -449,6 +450,7 @@ export class InadimplenciaService {
   // ─── Mapear item da API ───────────────────────────────────────
   private mapApiItem(item: InadimplenciaApiItem): ClienteInadimplente {
     return {
+      codigo:                   item.codigo,
       id:                       Number(item.id_pessoa),
       id_empresa:               item.id_empresa,
       nome_empresa:             item.nome_empresa,

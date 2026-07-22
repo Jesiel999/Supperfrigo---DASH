@@ -742,6 +742,7 @@ export class InadimplenciaComponent implements OnInit {
 
   exportarTitulosInadimplentes(): void {
     const dados = this.svc.clientesFiltrados().map(c => ({
+      'Código': c.codigo,
       'Empresa': c.nome_empresa,
       'Cliente': c.nome_pessoa,
       'Documento': c.documento,

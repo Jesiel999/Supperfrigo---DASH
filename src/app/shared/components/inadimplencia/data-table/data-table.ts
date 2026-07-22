@@ -125,6 +125,12 @@ export class DataTableComponent implements OnChanges {
   // ─── Colunas ────────────────────────────────────────────────
   readonly colunas: ColDef<ClienteInadimplente>[] = [
     {
+      field:      'codigo',
+      headerName: 'Código',
+      width:      110,
+      pinned:     'left',
+    },
+    {
       field:      'nome_empresa',
       headerName: 'Empresa',
       width:      150,

@@ -14,7 +14,7 @@ import { AuthService } from '../services/auth.service';
       <div class="login-card">
         <!-- Logo -->
         <div class="logo">
-          <div class="logo-icon"></div>
+          <div class="logo-icon"><img class="logo-wkg" src="favicon-192x192.png"/></div>
           <span class="logo-text">Core<em>View</em></span>
         </div>
 
@@ -116,8 +116,11 @@ import { AuthService } from '../services/auth.service';
     }
     .logo-icon {
       width: 38px; height: 38px; border-radius: 10px;
-      background: linear-gradient(135deg,#f43f5e,#fb923c);
+      background: linear-gradient(135deg,#0f0560, #000000);
       display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .logo-wkg{
+      width: 32px; height: 32px;
     }
     .logo-text {
       font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px;
@@ -162,7 +165,7 @@ import { AuthService } from '../services/auth.service';
     }
 
     .btn-login {
-      background: linear-gradient(135deg,#f43f5e,#fb923c);
+      background: linear-gradient(135deg,#0f0560, #000000);
       border: none; border-radius: 10px; color: white;
       font-size: 14px; font-weight: 600; font-family: 'Outfit',sans-serif;
       padding: 13px; cursor: pointer; display: flex; align-items: center;
