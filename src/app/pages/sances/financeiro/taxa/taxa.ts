@@ -1,301 +1,257 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { PmpPmrService } from '../../../../shared/services/pmp-pmr.service';
-import { KpiCardComponent } from '../../../../shared/components/pmp-pmr/kpi-card/kpi-card';
-import { DataTablePmrComponent } from '../../../../shared/components/pmp-pmr/data-table-pmr/data-table';
-import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/data-table-pmp/data-table';
+import { TaxaService } from '../../../../shared/services/taxa.service';
 import { HelpItem } from '../../../../shared/models/config.models';
+import { KpiCardComponent } from '../../../../shared/components/kpi-card/kpi-card';
+import { KpiCardInvertComponent } from '../../../../shared/components/kpi-card-invert/kpi-card';
+import { TopDevedoresBarComponent } from '../../../../shared/components/line-bar/line-bar';
+import { LineChartComponent } from '../../../../shared/components/line-chart/line-chart';
+import { ExcelExportService } from '../../../../shared/services/excel-export.service';
+import { TaxaPagamentoColumnProvider, TaxaRecebimentoColumnProvider } from '../../../../shared/components/tables/taxa/column-providers';
+import { DataTableComponent } from '../../../../shared/components/data-table/data-table';
 
 @Component({
-  selector: 'app-pmp-pmr',
+  selector: 'app-taxa',
   standalone: true,
   imports: [
     CommonModule,
     KpiCardComponent,
-    DataTablePmpComponent,
-    DataTablePmrComponent,
+    KpiCardInvertComponent,
+    TopDevedoresBarComponent,
+    LineChartComponent,
+    DataTableComponent,
   ],
   template: `
     <div class="page">
       <!-- Header -->
       <div class="page-header">
         <div>
-          <h1 class="page-title">Análise <span>PMP & PMR</span></h1>
+          <h1 class="page-title">Análise <span>Taxa de Recebimento e Pagamento</span></h1>
           <p class="page-sub">
-            Última atualização:
-            <strong>{{ svc.ultimaAtualizacaoFormatada() }}</strong>
-
-            • Próxima atualização:
-            <strong>{{ svc.proximaAtualizacaoFormatada() }}</strong>
+            Última atualização: <strong>{{ svc.ultimaAtualizacaoFormatada() }}</strong>
+            • Próxima atualização: <strong>{{ svc.proximaAtualizacaoFormatada() }}</strong>
           </p>
         </div>
 
         <div class="header-right">
           <div class="periodo-picker">
-            <input
-              type="date"
-              class="input-date"
-              [value]="svc.dataInicio()"
-              (change)="onDataInicio($any($event.target).value)"
-            />
+            <input type="date" class="input-date" [value]="svc.dataInicio()" (change)="onDataInicio($any($event.target).value)" />
             <span class="sep">→</span>
-            <input
-              type="date"
-              class="input-date"
-              [value]="svc.dataFim()"
-              (change)="onDataFim($any($event.target).value)"
-            />
+            <input type="date" class="input-date" [value]="svc.dataFim()" (change)="onDataFim($any($event.target).value)" />
             <button class="btn-filtrar" (click)="recarregar()">Filtrar</button>
-            <button
-                class="help-btn"
-                (click)="abrirAjuda()"
-                title="Ajuda do Dashboard">
-                <span>?</span>
-            </button>
+            <button class="help-btn" (click)="abrirAjuda()" title="Ajuda do Dashboard"><span>?</span></button>
+
             @if (ajudaAberta()) {
               <div class="help-backdrop" (click)="fecharAjuda()">
-                  <div class="help-modal" (click)="$event.stopPropagation()">
-                      <div class="help-header">
-                          <div>
-                              <div class="help-badge">
-                                  📊 Dashboard PMP & PMR
-                              </div>
-                              <h2>Como interpretar este Dashboard</h2>
-                              <p>
-                                  Entenda o significado de cada indicador apresentado
-                                  nesta tela e como utilizá-los na tomada de decisão.
-                              </p>
-                          </div>
-                          <button class="close-btn" (click)="fecharAjuda()">
-                              ✕
-                          </button>
-                      </div>
-                      <div class="help-body">
-                          @for(item of ajuda; track item.titulo){
-                              <div class="help-card">
-                                  <div class="help-icon">
-                                      @switch (item.titulo) {
-                                        @case ("PMP (Prazo Médio de Pagamento)") { ⏱️ }
-                                        @case ("PMR (Prazo Médio de Recebimento)") { 📈 }
-                                        @case ("Quantidade de Títulos") { 📄 }
-                                        @case ("Valor Médio") { 💰 }
-                                        @case ("Valor Total") { 💵 }
-                                        @case ("PMP por Fornecedor") { 🏢 }
-                                        @case ("PMR por Cliente") { 👥 }
-                                        @case ("Tabela de Títulos") { 📋 }
-                                        @case ("Última Atualização") { 🔄 }
-                                        @case ("Próxima Atualização") { ⏳ }
-                                        @case ("Filtros") { 🎛️ }
-                                        @default { ℹ️ }
-                                    }
-                                  </div>
-                                  <div>
-                                      <h4>{{item.titulo}}</h4>
-
-                                      <p>{{item.descricao}}</p>
-                                  </div>
-                              </div>
-                          }
-                      </div>
-                      <div class="help-footer">
-                          <div class="footer-info">
-                              <strong>Dica</strong>
-                              <span>
-                                  Todos os indicadores respeitam os filtros de período e empresas selecionadas.
-                              </span>
-                          </div>
-                          <button
-                              class="btn-entendi"
-                              (click)="fecharAjuda()">
-                              Entendi
-                          </button>
-                      </div>
+                <div class="help-modal" (click)="$event.stopPropagation()">
+                  <div class="help-header">
+                    <div>
+                      <div class="help-badge">📊 Dashboard Taxa de Recebimento e Pagamento</div>
+                      <h2>Como interpretar este Dashboard</h2>
+                      <p>Entenda o significado de cada indicador apresentado nesta tela.</p>
+                    </div>
+                    <button class="close-btn" (click)="fecharAjuda()">✕</button>
                   </div>
+                  <div class="help-body">
+                    @for (item of ajuda; track item.titulo) {
+                      <div class="help-card">
+                        <div class="help-icon">ℹ️</div>
+                        <div>
+                          <h4>{{ item.titulo }}</h4>
+                          <p>{{ item.descricao }}</p>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                  <div class="help-footer">
+                    <div class="footer-info">
+                      <strong>Dica</strong>
+                      <span>Todos os indicadores respeitam os filtros de período e empresas selecionadas.</span>
+                    </div>
+                    <button class="btn-entendi" (click)="fecharAjuda()">Entendi</button>
+                  </div>
+                </div>
               </div>
-              }
+            }
           </div>
         </div>
       </div>
 
       <!-- Abas -->
       <div class="tabs">
-        <button 
-          class="tab" 
-          [class.active]="abaAtiva === 'pmp'"
-          (click)="abaAtiva = 'pmp'"
-        >
-          📊 PMP - Prazo Médio de Pagamento
+        <button class="tab" [class.active]="abaAtiva === 'taxa-recebimento'" (click)="abaAtiva = 'taxa-recebimento'">
+          📊 Taxa de Recebimento
         </button>
-        <button 
-          class="tab" 
-          [class.active]="abaAtiva === 'pmr'"
-          (click)="abaAtiva = 'pmr'"
-        >
-          📈 PMR - Prazo Médio de Recebimento
+        <button class="tab" [class.active]="abaAtiva === 'taxa-pagamento'" (click)="abaAtiva = 'taxa-pagamento'">
+          📈 Taxa de Pagamento
         </button>
       </div>
 
-      <!-- ABA PMP -->
-      <ng-container *ngIf="abaAtiva === 'pmp'">
-        <!-- KPIs PMP -->
+      <!-- ═══════════════ ABA RECEBIMENTO ═══════════════ -->
+      @if (abaAtiva === 'taxa-recebimento') {
         <div class="kpi-grid">
           <app-kpi-card
-            label="PMP — Dias"
-            icon="⏱️"
-            variant="info"
-            [value]="svc.kpisPmp().pmpDias"
-            [delta]="svc.kpisPmp().variacaoPmp"
-            [isCurrency]="false"
-            suffix=" dias"
+            label="Valor a Receber" icon="🔴" variant="danger"
+            [value]="svc.kpiTxRecebimento().valorEsperado"
+            [delta]="svc.kpiTxRecebimento().variacaoEsperado"
+            [isCurrency]="true"
           />
-          <app-kpi-card
-            label="Quantidade de Títulos"
-            icon="📋"
-            variant="warning"
-            [value]="svc.kpisPmp().qtdTitulos"
-            [delta]="svc.kpisPmp().variacaoQtd"
-            [isCurrency]="false"
-          />
-          <app-kpi-card
-            label="Valor Médio"
-            icon="💰"
-            variant="success"
-            [value]="svc.kpisPmp().valorMedio"
-            [delta]="svc.kpisPmp().variacaoValor"
+          <app-kpi-card-invert
+            label="Valor Recebido" icon="✅" variant="success"
+            [value]="svc.kpiTxRecebimento().valorRealizado"
+            [delta]="svc.kpiTxRecebimento().variacaoRealizado"
             [isCurrency]="true"
           />
           <app-kpi-card
-            label="Valor Total"
-            icon="💵"
-            variant="danger"
-            [value]="svc.kpisPmp().valorTotal"
-            [delta]="svc.kpisPmp().variacaoValor"
+            label="Diferença" icon="💵" variant="info"
+            [value]="svc.kpiTxRecebimento().valorDiferenca"
+            [delta]="svc.kpiTxRecebimento().variacaoDiferenca"
             [isCurrency]="true"
           />
         </div>
 
-        <!-- Agrupamentos PMP -->
-        <div class="agrupamentos-row">
+        <div class="charts-row">
           <div class="card">
             <div class="card-header">
               <div>
-                <h2 class="card-title">PMP por Fornecedor</h2>
-                <p class="card-sub">Top 10 maiores valores</p>
+                <h2 class="card-title">Rank por Empresa</h2>
+                <p class="card-sub">Valor esperado a receber</p>
               </div>
             </div>
-            <div class="agrupamento-list">
-              <div *ngFor="let item of svc.agrupamentoPmpFornecedor()" class="agrupamento-item">
-                <div class="agrupamento-info">
-                  <div class="agrupamento-nome">{{ item.label }}</div>
-                  <div class="agrupamento-stats">
-                    <span class="stat">{{ item.pmpDias }} dias</span>
-                    <span class="stat">{{ item.qtdTitulos }} títulos</span>
-                  </div>
-                </div>
-                <div class="agrupamento-valor">
-                  <div class="valor">{{ item.valorTotal | currency }}</div>
-                  <div class="percentual">{{ item.percentualTotal.toFixed(1) }}%</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tabela PMP -->
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <h2 class="card-title">Títulos — PMP</h2>
-              <p class="card-sub">
-                {{ svc.titulosPmp().length }} títulos
-              </p>
-            </div>
+            <app-top-devedores-bar [data]="svc.rankingRecebimentoParaGrafico()" />
           </div>
 
-          <app-data-table-pmp [List]="svc.titulosPmp()" />
-        </div>
-      </ng-container>
-
-      <!-- ABA PMR -->
-      <ng-container *ngIf="abaAtiva === 'pmr'">
-        <!-- KPIs PMR -->
-        <div class="kpi-grid">
-          <app-kpi-card
-            label="PMR — Dias"
-            icon="⏱️"
-            variant="info"
-            [value]="svc.kpisPmr().pmrDias"
-            [delta]="svc.kpisPmr().variacaoPmr"
-            [isCurrency]="false"
-            suffix=" dias"
-          />
-          <app-kpi-card
-            label="Quantidade de Títulos"
-            icon="📋"
-            variant="warning"
-            [value]="svc.kpisPmr().qtdTitulos"
-            [delta]="svc.kpisPmr().variacaoQtd"
-            [isCurrency]="false"
-          />
-          <app-kpi-card
-            label="Valor Médio"
-            icon="💰"
-            variant="success"
-            [value]="svc.kpisPmr().valorMedio"
-            [delta]="svc.kpisPmr().variacaoValor"
-            [isCurrency]="true"
-          />
-          <app-kpi-card
-            label="Valor Total"
-            icon="💵"
-            variant="danger"
-            [value]="svc.kpisPmr().valorTotal"
-            [delta]="svc.kpisPmr().variacaoValor"
-            [isCurrency]="true"
-          />
-        </div>
-
-        <!-- Agrupamentos PMR -->
-        <div class="agrupamentos-row">
           <div class="card">
             <div class="card-header">
               <div>
-                <h2 class="card-title">PMR por Cliente</h2>
-                <p class="card-sub">Top 10 maiores valores</p>
+                <h2 class="card-title">A Receber vs Recebido</h2>
+                <p class="card-sub">Comparativo por empresa</p>
               </div>
             </div>
-            <div class="agrupamento-list">
-              <div *ngFor="let item of svc.agrupamentoPmrCliente()" class="agrupamento-item">
-                <div class="agrupamento-info">
-                  <div class="agrupamento-nome">{{ item.label }}</div>
-                  <div class="agrupamento-stats">
-                    <span class="stat">{{ item.pmrDias }} dias</span>
-                    <span class="stat">{{ item.qtdTitulos }} títulos</span>
-                  </div>
-                </div>
-                <div class="agrupamento-valor">
-                  <div class="valor">{{ item.valorTotal | currency }}</div>
-                  <div class="percentual">{{ item.percentualTotal.toFixed(1) }}%</div>
-                </div>
-              </div>
+            <div class="legend">
+              <span class="legend-item"><span class="legend-dot" style="background:#f43f5e"></span> A Receber</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#34d399"></span> Recebido</span>
             </div>
+            <app-top-devedores-bar [data]="svc.comparativoRecebimento()" />
           </div>
         </div>
 
-        <!-- Tabela PMR -->
+        <div class="card chart-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">
+                Evolução {{ svc.granularidadeGraficoRecebimento() === 'mes' ? 'Mensal' : 'Diária' }}
+              </h2>
+              <p class="card-sub">A Receber (vermelho) vs Recebido (verde)</p>
+            </div>
+            <select class="select-mini" [value]="svc.granularidadeGraficoRecebimento()" (change)="onGranularidadeRecebimentoChange($any($event.target).value)">
+              <option value="dia">Por dia</option>
+              <option value="mes">Por mês</option>
+            </select>
+          </div>
+            <app-line-chart [series]="svc.seriesRecebimento()" />
+        </div>
+
         <div class="card">
           <div class="card-header">
             <div>
-              <h2 class="card-title">Títulos — PMR</h2>
-              <p class="card-sub">
-                {{ svc.titulosPmr().length }} títulos
-              </p>
+              <h2 class="card-title">Taxa de Recebimento por Cliente</h2>
+              <p class="card-sub">{{ svc.taxaPorCliente().length }} clientes</p>
             </div>
+            <button class="btn-export-mini" (click)="exportarTaxaPorCliente()">📊 Excel</button>
+          </div>
+          <div class="table-wrapper">
+            <app-data-table
+              [dados]="svc.recebimentoFiltrado()"
+              [colunas]="colunasRecebimento"
+              [nomeArquivo]="nomeArquivoRecebimento"
+            />
+          </div>
+        </div>
+      }
+
+      <!-- ═══════════════ ABA PAGAMENTO ═══════════════ -->
+      @if (abaAtiva === 'taxa-pagamento') {
+        <div class="kpi-grid">
+          <app-kpi-card
+            label="Valor a Pagar" icon="🔴" variant="danger"
+            [value]="svc.kpiTxPagamento().valorEsperado"
+            [delta]="svc.kpiTxPagamento().variacaoEsperado"
+            [isCurrency]="true"
+          />
+          <app-kpi-card-invert
+            label="Valor Pago" icon="✅" variant="success"
+            [value]="svc.kpiTxPagamento().valorRealizado"
+            [delta]="svc.kpiTxPagamento().variacaoRealizado"
+            [isCurrency]="true"
+          />
+          <app-kpi-card
+            label="Diferença" icon="💵" variant="info"
+            [value]="svc.kpiTxPagamento().valorDiferenca"
+            [delta]="svc.kpiTxPagamento().variacaoDiferenca"
+            [isCurrency]="true"
+          />
+        </div>
+
+        <div class="charts-row">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Rank por Empresa</h2>
+                <p class="card-sub">Valor esperado a pagar</p>
+              </div>
+            </div>
+            <app-top-devedores-bar [data]="svc.rankingPagamentoParaGrafico()" />
           </div>
 
-          <app-data-table-pmr [List]="svc.titulosPmr()" />
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">A Pagar vs Pago</h2>
+                <p class="card-sub">Comparativo por empresa</p>
+              </div>
+            </div>
+            <div class="legend">
+              <span class="legend-item"><span class="legend-dot" style="background:#f43f5e"></span> A Pagar</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#34d399"></span> Pago</span>
+            </div>
+            <app-top-devedores-bar [data]="svc.comparativoPagamento()" />
+          </div>
         </div>
-      </ng-container>
+
+        <div class="card chart-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">
+                Evolução {{ svc.granularidadeGraficoPagamento() === 'mes' ? 'Mensal' : 'Diária' }}
+              </h2>
+              <p class="card-sub">A Pagar (vermelho) vs Pago (verde)</p>
+            </div>
+            <select class="select-mini" [value]="svc.granularidadeGraficoPagamento()" (change)="onGranularidadePagamentoChange($any($event.target).value)">
+              <option value="dia">Por dia</option>
+              <option value="mes">Por mês</option>
+            </select>
+          </div>
+          <app-line-chart [series]="svc.seriesPagamento()" />
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Taxa de Pagamento por Fornecedor</h2>
+              <p class="card-sub">{{ svc.taxaPorFornecedor().length }} fornecedores</p>
+            </div>
+            <button class="btn-export-mini" (click)="exportarTaxaPorFornecedor()">📊 Excel</button>
+          </div>
+          <div class="table-wrapper">
+            <app-data-table
+              [dados]="svc.pagamentoFiltrado()"
+              [colunas]="colunasPagamento"
+              [nomeArquivo]="nomeArquivoPagamento"
+            />
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -615,6 +571,15 @@ import { HelpItem } from '../../../../shared/models/config.models';
       animation: pulse 1.5s infinite;
     }
 
+    /* ── Botão de exportar excel ── */
+    .btn-export-mini {
+      background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.3);
+      color: #f43f5e; font-size: 11px; padding: 5px 12px; border-radius: 6px;
+      cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 500;
+      transition: background .2s;
+    }
+    .btn-export-mini:hover { background: rgba(244,63,94,.22); }
+
     @keyframes pulse {
       0%,
       100% {
@@ -659,7 +624,7 @@ import { HelpItem } from '../../../../shared/models/config.models';
     /* ── KPI Grid ── */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 16px;
     }
 
@@ -724,6 +689,7 @@ import { HelpItem } from '../../../../shared/models/config.models';
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 22px;
+      margin-bottom: 20px;
     }
 
     .card-header {
@@ -905,90 +871,65 @@ import { HelpItem } from '../../../../shared/models/config.models';
     }
   `],
 })
-export class PmpPmrComponent implements OnInit {
-  protected readonly svc = inject(PmpPmrService);
-  abaAtiva: 'pmp' | 'pmr' = 'pmp';
+export class TaxaComponent implements OnInit {
+  private readonly recebimentoColunasProvider = new TaxaRecebimentoColumnProvider();
+  private readonly pagamentoColunasProvider = new TaxaPagamentoColumnProvider();
 
+  protected readonly colunasRecebimento = this.recebimentoColunasProvider.getColunas();
+  protected readonly colunasPagamento = this.pagamentoColunasProvider.getColunas();
+  protected readonly nomeArquivoRecebimento = this.recebimentoColunasProvider.getNomeArquivoExport();
+  protected readonly nomeArquivoPagamento = this.pagamentoColunasProvider.getNomeArquivoExport();
+
+  protected readonly svc = inject(TaxaService);
+  private readonly excelExport = inject(ExcelExportService);
+
+  abaAtiva: 'taxa-recebimento' | 'taxa-pagamento' = 'taxa-recebimento';
   readonly ajudaAberta = signal(false);
 
   readonly ajuda: HelpItem[] = [
-    {
-      titulo: 'PMP (Prazo Médio de Pagamento)',
-      descricao:
-        'Representa o tempo médio, em dias, que a empresa leva para pagar seus fornecedores. Quanto maior o PMP, maior é o prazo utilizado para realizar os pagamentos. Calculo soma de todos os títulos pagar (data_baixa - data_emissao) / Quantidade de títulos pagar'
-    },
-    {
-      titulo: 'PMR (Prazo Médio de Recebimento)',
-      descricao:
-        'Representa o tempo médio, em dias, que a empresa leva para receber dos clientes após a emissão dos títulos. Calculo soma de todos os títulos receber (data_baixa - data_emissao) / Quantidade de títulos receber'
-    },
-    {
-      titulo: 'Quantidade de Títulos',
-      descricao:
-        'Quantidade total de títulos considerados no cálculo do período selecionado. Cada título representa um documento financeiro de pagamento ou recebimento.'
-    },
-    {
-      titulo: 'Valor Médio',
-      descricao:
-        'Valor financeiro médio dos títulos do período. É calculado dividindo o Valor Total pela Quantidade de Títulos.'
-    },
-    {
-      titulo: 'Valor Total',
-      descricao:
-        'Soma de todos os títulos considerados no período selecionado.'
-    },
-    {
-      titulo: 'PMP por Fornecedor',
-      descricao:
-        'Ranking dos fornecedores com maior volume financeiro. Também apresenta o prazo médio de pagamento e a quantidade de títulos de cada fornecedor.'
-    },
-    {
-      titulo: 'PMR por Cliente',
-      descricao:
-        'Ranking dos clientes com maior volume financeiro recebido. Também apresenta o prazo médio de recebimento e a quantidade de títulos.'
-    },
-    {
-      titulo: 'Tabela de Títulos',
-      descricao:
-        'Lista detalhada dos títulos utilizados nos cálculos do dashboard, permitindo consultar valores, datas, fornecedores ou clientes e demais informações financeiras.'
-    },
-    {
-      titulo: 'Última Atualização',
-      descricao:
-        'Data e horário da última execução do processo ETL responsável pela atualização das informações apresentadas neste dashboard.'
-    },
-    {
-      titulo: 'Próxima Atualização',
-      descricao:
-        'Previsão da próxima atualização automática dos dados. O dashboard é atualizado a cada 30 minutos.'
-    },
-    {
-      titulo: 'Filtros',
-      descricao:
-        'Todos os indicadores respeitam o período selecionado e as empresas escolhidas no filtro global do sistema.'
-    }
+    { titulo: 'Valor a Receber/Pagar', descricao: 'Soma de todos os títulos do período, independente de terem sido baixados.' },
+    { titulo: 'Valor Recebido/Pago', descricao: 'Soma apenas dos títulos que já possuem data de baixa registrada.' },
+    { titulo: 'Diferença', descricao: 'Valor esperado menos o valor realizado — quanto ainda falta ser liquidado.' },
+    { titulo: 'Taxa', descricao: 'Percentual do valor esperado que já foi efetivamente realizado (recebido/pago).' },
   ];
-  abrirAjuda(): void {
-    this.ajudaAberta.set(true);
-  }
 
-  fecharAjuda(): void {
-    this.ajudaAberta.set(false);
-  }
+  abrirAjuda(): void { this.ajudaAberta.set(true); }
+  fecharAjuda(): void { this.ajudaAberta.set(false); }
 
   ngOnInit(): void {
     this.svc.carregar(this.svc.dataInicio(), this.svc.dataFim());
   }
 
-  onDataInicio(v: string): void {
-    this.svc.dataInicio.set(v);
+  onDataInicio(v: string): void { this.svc.dataInicio.set(v); }
+  onDataFim(v: string): void { this.svc.dataFim.set(v); }
+  recarregar(): void { this.svc.carregar(this.svc.dataInicio(), this.svc.dataFim()); }
+
+  onGranularidadeRecebimentoChange(v: string): void {
+    this.svc.setGranularidadeRecebimento(v as 'dia' | 'mes');
+  }
+  onGranularidadePagamentoChange(v: string): void {
+    this.svc.setGranularidadePagamento(v as 'dia' | 'mes');
   }
 
-  onDataFim(v: string): void {
-    this.svc.dataFim.set(v);
+  exportarTaxaPorCliente(): void {
+    const dados = this.svc.taxaPorCliente().map(c => ({
+      'Cliente': c.label,
+      'Valor Esperado (R$)': c.valorEsperado,
+      'Valor Recebido (R$)': c.valorPago,
+      'Taxa (%)': c.taxaPagamento.toFixed(2),
+      '% do Total': c.percentualDoTotal.toFixed(2),
+    }));
+    this.excelExport.exportar(dados, 'taxa_recebimento_por_cliente');
   }
 
-  recarregar(): void {
-    this.svc.carregar(this.svc.dataInicio(), this.svc.dataFim());
+  exportarTaxaPorFornecedor(): void {
+    const dados = this.svc.taxaPorFornecedor().map(f => ({
+      'Fornecedor': f.label,
+      'Valor Esperado (R$)': f.valorEsperado,
+      'Valor Pago (R$)': f.valorPago,
+      'Taxa (%)': f.taxaPagamento.toFixed(2),
+      '% do Total': f.percentualDoTotal.toFixed(2),
+    }));
+    this.excelExport.exportar(dados, 'taxa_pagamento_por_fornecedor');
   }
 }

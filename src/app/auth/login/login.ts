@@ -165,7 +165,7 @@ import { AuthService } from '../services/auth.service';
     }
 
     .btn-login {
-      background: linear-gradient(135deg,#0f0560, #000000);
+      background: #f43f5e;
       border: none; border-radius: 10px; color: white;
       font-size: 14px; font-weight: 600; font-family: 'Outfit',sans-serif;
       padding: 13px; cursor: pointer; display: flex; align-items: center;

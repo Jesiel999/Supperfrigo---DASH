@@ -9,6 +9,7 @@ import {
   PmrApiItem,
   RespostaEnvio,
 } from '../models/financeiro.models';
+import { TaxaApiItem } from '../models/taxa.models';
 import {
   Usuario,
   Perfil,
@@ -201,6 +202,40 @@ export class ApiService {
 
     return this.http.get<ApiResponse<InadimplenciaApiItem>>(
       `${this.base}/financeiro/inadimplencia`,
+      { params }
+    );
+  }
+
+  getTxRecebimento(dataInicio?: string, dataFim?: string) {
+    let params = new HttpParams();
+
+    if(dataInicio) {
+      params = params.set('data_inicio', dataInicio);
+    }
+
+    if(dataFim) {
+      params = params.set('data_fim', dataFim);
+    }
+
+    return this.http.get<ApiResponse<TaxaApiItem>>(
+      `${this.base}/financeiro/taxarecebimento`,
+      { params }
+    );
+  }
+
+  getTxPagamento(dataInicio?: string, dataFim?: string) {
+    let params = new HttpParams();
+
+    if(dataInicio) {
+      params = params.set('data_inicio', dataInicio);
+    }
+
+    if(dataFim) {
+      params = params.set('data_fim', dataFim);
+    }
+
+    return this.http.get<ApiResponse<TaxaApiItem>>(
+      `${this.base}/financeiro/taxapagamento`,
       { params }
     );
   }

@@ -4,6 +4,11 @@ type TopbarTab = {
   hideTablet?: boolean;
 };
 
+export interface HelpItem {
+  titulo: string;
+  descricao: string;
+}
+
 type TopbarSection = 'financeiro' | 'estoque' |'chamados' | 'admin' | null;
 
 

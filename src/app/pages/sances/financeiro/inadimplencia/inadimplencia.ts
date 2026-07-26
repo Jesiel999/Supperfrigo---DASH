@@ -1,31 +1,29 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { InadimplenciaService }       from '../../../../shared/services/inadimplencia.service';
-import { LineChartComponent } from '../../../../shared/components/inadimplencia/line-chart/line-chart';
-import { KpiCardComponent }           from '../../../../shared/components/inadimplencia/kpi-card/kpi-card';
-import { KpiCardInvertComponent }           from '../../../../shared/components/inadimplencia/kpi-card-invert/kpi-card';
-import { DonutChartComponent }        from '../../../../shared/components/inadimplencia/donut-chart/donut-chart';
-import { DonutChartEmpComponent }        from '../../../../shared/components/inadimplencia/donut-chart-emp/donut-chart';
-import { TopDevedoresBarComponent }   from '../../../../shared/components/inadimplencia/line-bar/line-bar';
-import { DataTableComponent }         from '../../../../shared/components/inadimplencia/data-table/data-table';
+import { LineChartComponent } from '../../../../shared/components/line-chart/line-chart';
+import { KpiCardComponent }           from '../../../../shared/components/kpi-card/kpi-card';
+import { KpiCardInvertComponent } from '../../../../shared/components/kpi-card-invert/kpi-card';
+import { DonutChartComponent }        from '../../../../shared/components/donut-chart/donut-chart';
+import { DonutChartEmpComponent }        from '../../../../shared/components/donut-chart-emp/donut-chart';
+import { TopDevedoresBarComponent }   from '../../../../shared/components/line-bar/line-bar';
+import { DataTableComponent }         from '../../../../shared/components/data-table/data-table';
 import { MultiSelectFilterComponent } from '../../../../shared/components/multi-select-filter/pessoa_filter';
 import { ExcelExportService } from '../../../../shared/services/excel-export.service';
+import { HelpItem } from '../../../../shared/models/config.models';
+import { InadimplenciaColumnProvider } from '../../../../shared/components/tables/inadimplencia/column-providers';
 
-interface HelpItem {
-  titulo: string;
-  descricao: string;
-}
 
 @Component({
   selector: 'app-inadimplencia',
   standalone: true,
   imports: [
     KpiCardComponent,
+    KpiCardInvertComponent,
     LineChartComponent,
     DonutChartComponent,
     DonutChartEmpComponent,
     TopDevedoresBarComponent,
     DataTableComponent,
-    KpiCardInvertComponent,
     MultiSelectFilterComponent,
   ],
   template: `
@@ -259,7 +257,7 @@ interface HelpItem {
           </div>
         </div>
 
-        <app-line-chart [pontos]="svc.pontosGraficoAtivo()" />
+        <app-line-chart [series]="svc.serieInadimplencia()" />
       </div>
 
       <div class="card">
@@ -276,7 +274,11 @@ interface HelpItem {
             </button>
         </div>
 
-        <app-data-table [clientes]="svc.clientesFiltrados()" />
+        <app-data-table
+          [dados]="svc.clientesFiltrados()"
+          [colunas]="colunas"
+          [nomeArquivo]="nomeArquivo"
+        />
       </div>
     </div>
   `,
@@ -638,6 +640,10 @@ interface HelpItem {
   `],
 })
 export class InadimplenciaComponent implements OnInit {
+  private readonly colunasProvider = new InadimplenciaColumnProvider();
+  protected readonly colunas = this.colunasProvider.getColunas();
+  protected readonly nomeArquivo = this.colunasProvider.getNomeArquivoExport();
+
   onGranularidadeChange(v: string): void {
     this.svc.setGranularidadeGrafico(v as 'dia' | 'mes');
   }

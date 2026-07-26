@@ -28,6 +28,7 @@ export const routes: Routes = [
       { path: 'credito',         canActivate: [permissaoGuard('credito')],         loadComponent: () => import('./pages/sances/financeiro/credito/credito').then(m => m.CreditoComponent) },
       { path: 'fluxo_caixa',     canActivate: [permissaoGuard('fluxo_caixa')],     loadComponent: () => import('./pages/sances/financeiro/fluxo_caixa/fluxo_caixa').then(m => m.FluxoCaixaComponent) },
       { path: 'aging_report',    canActivate: [permissaoGuard('aging_report')],    loadComponent: () => import('./pages/sances/financeiro/aging-report/aging-report').then(m => m.AgingReportComponent) },
+      { path: 'taxa',            canActivate: [permissaoGuard('taxa')],    loadComponent: () => import('./pages/sances/financeiro/taxa/taxa').then(m => m.TaxaComponent) },
       { path: '', redirectTo: 'inadimplencia', pathMatch: 'full' },
     ],
   },

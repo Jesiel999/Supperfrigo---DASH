@@ -19,6 +19,22 @@ Disponibilizar uma plataforma moderna para acompanhamento de indicadores dos neg
 * HTML5
 * CSS3
 
+### Bibliotecas Angular
+
+* @angular/animations |	Animações nativas do Angular | Instalada
+* @angular/common |	Pipes, diretivas (NgIf, NgFor, CurrencyPipe, etc.) | Angular
+* @angular/compiler | Compilador do Angular | Angular
+* @angular/core | Núcleo do Angular |  Angular
+* @angular/forms | Formulários (Template e Reactive Forms) |  Angular
+* @angular/platform-browser | Renderização no navegador |  Angular
+* @angular/router | Sistema de rotas |  Angular
+* ag-grid-angular | Integração do AG Grid com Angular |  Biblioteca
+* ag-grid-community | Motor do AG Grid |  Biblioteca
+* rxjs | Programação reativa (Observables) |  Biblioteca
+* tslib | Funções auxiliares do TypeScript |  Dependência técnica
+* xlsx | Leitura e geração de arquivos Excel |  Biblioteca
+* zone.js | Detecção de mudanças do Angular |  Dependência do Angular
+ 
 ### Arquitetura
 
 * Programação Orientada a Objetos (OO)

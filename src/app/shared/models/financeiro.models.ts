@@ -31,12 +31,7 @@ export interface KpiInadimplencia {
   variacaoTotal: number; variacaoClientes: number;
   variacaoTicket: number; variacaoTitulos: number;
 }
-export interface PontoGrafico {
-  data: string;
-  valor: number;
-  label?: string;
-  formatador?: 'currency' | 'number' | 'percent';
-}
+
 export interface MaioresDevedores {nome: string; valor: number; percentual: number; diasAtrasoMedio: number;}
 
 export interface DonutSegment {
@@ -111,6 +106,7 @@ export interface InadimplenciaApiItem {
 export interface EnvioCobrancaPayload { id_pessoa: number; canal: CanalCobranca; mensagem?: string; }
 export interface RespostaEnvio { status: 'enviado' | 'falhou'; canal: CanalCobranca; mensagem: string; }
 
+// ─── PMP e PMR
 export interface PmpApiItem {
   codigo_titulo: string;
   id_empresa: string;
@@ -151,7 +147,6 @@ export interface PmrApiItem {
   ultima_atualizacao: string | null;
 }
 
-// ─── PMP e PMR
 export interface KpiPmp {
   pmpDias: number;
   qtdTitulos: number;

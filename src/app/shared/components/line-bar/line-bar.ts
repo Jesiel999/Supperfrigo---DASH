@@ -1,5 +1,5 @@
 import { Component, input, computed } from '@angular/core';
-import { MaioresDevedores } from '../../../models/financeiro.models';
+import { MaioresDevedores } from '../../models/financeiro.models';
 
 @Component({
   selector: 'app-top-devedores-bar',

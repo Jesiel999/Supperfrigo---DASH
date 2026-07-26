@@ -1,5 +1,5 @@
 import { Component, input, computed } from '@angular/core';
-import { FaixaAtraso } from '../../../models/financeiro.models';
+import { FaixaAtraso } from '../../models/financeiro.models';
 
 interface DonutSegment extends FaixaAtraso {
   dasharray: string;
@@ -7,7 +7,7 @@ interface DonutSegment extends FaixaAtraso {
 }
 
 @Component({
-  selector: 'app-donut-chart-emp',
+  selector: 'app-donut-chart',
   imports: [],
   template: `
     <div class="donut-wrap">
@@ -27,10 +27,10 @@ interface DonutSegment extends FaixaAtraso {
 
         <text x="60" y="56" text-anchor="middle"
               font-size="14" font-weight="700" fill="white" font-family="Syne">
-          {{ totalTitulos() }}
+          {{ totalClientes() }}
         </text>
         <text x="60" y="68" text-anchor="middle"
-              font-size="8" fill="#64748b" font-family="Outfit">Títulos</text>
+              font-size="8" fill="#64748b" font-family="Outfit">clientes</text>
       </svg>
 
       <div class="donut-legend">
@@ -63,9 +63,9 @@ interface DonutSegment extends FaixaAtraso {
     .pct { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; }
   `],
 })
-export class DonutChartEmpComponent {
+export class DonutChartComponent {
   readonly faixas         = input.required<FaixaAtraso[]>();
-  readonly totalTitulos   = input<number>(47);
+  readonly totalClientes  = input<number>(47);
 
   private readonly circumference = 2 * Math.PI * 42;
 

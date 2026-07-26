@@ -7,10 +7,10 @@ import {
   FaixaAtraso,
   InadimplenciaApiItem,
   KpiInadimplencia,
-  PontoGrafico,
   StatusInadimplencia,
   MaioresDevedores,
 } from '../models/financeiro.models';
+import { PontoGrafico, Serie } from '../models/graficos.models';
 import { FiltroOpcao } from '../components/multi-select-filter/pessoa_filter';
 
 const PALETA_EMPRESAS = [
@@ -210,12 +210,12 @@ export class InadimplenciaService {
   }
 
 
-  // ─── Gráfico — computed reativo ───────────────────────────────
+  // ─── Evolução por VALOR (dia ou mês) ──────────────────────────
   readonly pontosGrafico = computed((): PontoGrafico[] => {
     const inadAtual = this._inadimplentes();
-    const inicio      = this._fmtInicio();
-    const fim    = this._fmtFim();
-    const chaves       = this._chavesPeriodo();
+    const inicio    = this._fmtInicio();
+    const fim       = this._fmtFim();
+    const chaves    = this._chavesPeriodo();
 
     if (!chaves.length || !inicio || !fim) return [];
 
@@ -223,22 +223,20 @@ export class InadimplenciaService {
     const dtFim    = this._parseDate(fim);
     const mapa     = new Map<string, number>();
 
-    // Linha vermelha: soma clientes por data_vencimento, APENAS de quem não tem data_baixa
+    // Linha vermelha: soma valores por data_vencimento, APENAS de quem não tem data_baixa
     inadAtual.forEach(c => {
       const dt = this._parseDate(c.data_vencimento);
       if (dt < dtInicio || dt > dtFim) return;
       const chave = this._chaveData(c.data_vencimento);
-      mapa.set(chave, (mapa.get(chave) ?? 0) + c.valor_total)
+      mapa.set(chave, (mapa.get(chave) ?? 0) + c.valor_total);
     });
-
 
     return chaves.map(k => ({
       data: this.granularidadeGrafico() === 'mes' ? this._formatarLabelMes(k) : k,
       valor: mapa.get(k) ?? 0,
-      label: 'Inadimplente',
-      formatador: 'currency',
     }));
   });
+
   // ─── Evolução por CLIENTES DISTINTOS (dia ou mês) ─────────────
   // conta clientes únicos por bucket usando Set.
   readonly pontosGraficoClientes = computed((): PontoGrafico[] => {
@@ -264,15 +262,22 @@ export class InadimplenciaService {
     return chaves.map(k => ({
       data: this.granularidadeGrafico() === 'mes' ? this._formatarLabelMes(k) : k,
       valor: mapaSets.get(k)?.size ?? 0,
-      label: 'Clientes',
-      formatador: 'number',
     }));
   });
 
-  // ─── Ponto único usado pelo template, conforme a métrica ativa ─
+  // ─── Pontos ativos, conforme a métrica selecionada ────────────
   readonly pontosGraficoAtivo = computed((): PontoGrafico[] =>
     this.metricaGrafico() === 'valor' ? this.pontosGrafico() : this.pontosGraficoClientes()
   );
+
+  // ─── Série pronta para o LineChartComponent ───────────────────
+  readonly serieInadimplencia = computed((): Serie[] => [{
+    id: 'inadimplente',
+    label: this.metricaGrafico() === 'valor' ? 'Inadimplente' : 'Clientes',
+    cor: '#f43f5e',
+    formatador: this.metricaGrafico() === 'valor' ? 'currency' : 'number',
+    pontos: this.pontosGraficoAtivo(),
+  }]);
 
   // ─── Top devedores — computed reativo ────────────────────────
   readonly topDevedores = computed((): MaioresDevedores[] => {
