@@ -7,7 +7,7 @@ import { KpiCardInvertComponent } from '../../../../shared/components/kpi-card-i
 import { TopDevedoresBarComponent } from '../../../../shared/components/line-bar/line-bar';
 import { LineChartComponent } from '../../../../shared/components/line-chart/line-chart';
 import { ExcelExportService } from '../../../../shared/services/excel-export.service';
-import { TaxaPagamentoColumnProvider, TaxaRecebimentoColumnProvider } from '../../../../shared/components/tables/taxa/column-providers';
+import { TaxaRecebimentoColumnProvider } from '../../../../shared/components/tables/taxa/column-providers';
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table';
 
 @Component({
@@ -26,7 +26,7 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
       <!-- Header -->
       <div class="page-header">
         <div>
-          <h1 class="page-title">Análise <span>Taxa de Recebimento e Pagamento</span></h1>
+          <h1 class="page-title">Análise <span>Taxa de Recebimento</span></h1>
           <p class="page-sub">
             Última atualização: <strong>{{ svc.ultimaAtualizacaoFormatada() }}</strong>
             • Próxima atualização: <strong>{{ svc.proximaAtualizacaoFormatada() }}</strong>
@@ -76,19 +76,6 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
           </div>
         </div>
       </div>
-
-      <!-- Abas -->
-      <div class="tabs">
-        <button class="tab" [class.active]="abaAtiva === 'taxa-recebimento'" (click)="abaAtiva = 'taxa-recebimento'">
-          📊 Taxa de Recebimento
-        </button>
-        <button class="tab" [class.active]="abaAtiva === 'taxa-pagamento'" (click)="abaAtiva = 'taxa-pagamento'">
-          📈 Taxa de Pagamento
-        </button>
-      </div>
-
-      <!-- ═══════════════ ABA RECEBIMENTO ═══════════════ -->
-      @if (abaAtiva === 'taxa-recebimento') {
         <div class="kpi-grid">
           <app-kpi-card
             label="Valor a Receber" icon="🔴" variant="danger"
@@ -168,90 +155,6 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
             />
           </div>
         </div>
-      }
-
-      <!-- ═══════════════ ABA PAGAMENTO ═══════════════ -->
-      @if (abaAtiva === 'taxa-pagamento') {
-        <div class="kpi-grid">
-          <app-kpi-card
-            label="Valor a Pagar" icon="🔴" variant="danger"
-            [value]="svc.kpiTxPagamento().valorEsperado"
-            [delta]="svc.kpiTxPagamento().variacaoEsperado"
-            [isCurrency]="true"
-          />
-          <app-kpi-card-invert
-            label="Valor Pago" icon="✅" variant="success"
-            [value]="svc.kpiTxPagamento().valorRealizado"
-            [delta]="svc.kpiTxPagamento().variacaoRealizado"
-            [isCurrency]="true"
-          />
-          <app-kpi-card
-            label="Diferença" icon="💵" variant="info"
-            [value]="svc.kpiTxPagamento().valorDiferenca"
-            [delta]="svc.kpiTxPagamento().variacaoDiferenca"
-            [isCurrency]="true"
-          />
-        </div>
-
-        <div class="charts-row">
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <h2 class="card-title">Rank por Empresa</h2>
-                <p class="card-sub">Valor esperado a pagar</p>
-              </div>
-            </div>
-            <app-top-devedores-bar [data]="svc.rankingPagamentoParaGrafico()" />
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <h2 class="card-title">A Pagar vs Pago</h2>
-                <p class="card-sub">Comparativo por empresa</p>
-              </div>
-            </div>
-            <div class="legend">
-              <span class="legend-item"><span class="legend-dot" style="background:#f43f5e"></span> A Pagar</span>
-              <span class="legend-item"><span class="legend-dot" style="background:#34d399"></span> Pago</span>
-            </div>
-            <app-top-devedores-bar [data]="svc.comparativoPagamento()" />
-          </div>
-        </div>
-
-        <div class="card chart-card">
-          <div class="card-header">
-            <div>
-              <h2 class="card-title">
-                Evolução {{ svc.granularidadeGraficoPagamento() === 'mes' ? 'Mensal' : 'Diária' }}
-              </h2>
-              <p class="card-sub">A Pagar (vermelho) vs Pago (verde)</p>
-            </div>
-            <select class="select-mini" [value]="svc.granularidadeGraficoPagamento()" (change)="onGranularidadePagamentoChange($any($event.target).value)">
-              <option value="dia">Por dia</option>
-              <option value="mes">Por mês</option>
-            </select>
-          </div>
-          <app-line-chart [series]="svc.seriesPagamento()" />
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <h2 class="card-title">Taxa de Pagamento por Fornecedor</h2>
-              <p class="card-sub">{{ svc.taxaPorFornecedor().length }} fornecedores</p>
-            </div>
-            <button class="btn-export-mini" (click)="exportarTaxaPorFornecedor()">📊 Excel</button>
-          </div>
-          <div class="table-wrapper">
-            <app-data-table
-              [dados]="svc.pagamentoFiltrado()"
-              [colunas]="colunasPagamento"
-              [nomeArquivo]="nomeArquivoPagamento"
-            />
-          </div>
-        </div>
-      }
     </div>
   `,
   styles: [`
@@ -878,19 +781,15 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
     }
   `],
 })
-export class TaxaComponent implements OnInit {
+export class TaxaRecebimentoComponent implements OnInit {
   private readonly recebimentoColunasProvider = new TaxaRecebimentoColumnProvider();
-  private readonly pagamentoColunasProvider = new TaxaPagamentoColumnProvider();
 
   protected readonly colunasRecebimento = this.recebimentoColunasProvider.getColunas();
-  protected readonly colunasPagamento = this.pagamentoColunasProvider.getColunas();
-  protected readonly nomeArquivoRecebimento = this.recebimentoColunasProvider.getNomeArquivoExport();
-  protected readonly nomeArquivoPagamento = this.pagamentoColunasProvider.getNomeArquivoExport();
+protected readonly nomeArquivoRecebimento = this.recebimentoColunasProvider.getNomeArquivoExport();
 
   protected readonly svc = inject(TaxaService);
   private readonly excelExport = inject(ExcelExportService);
 
-  abaAtiva: 'taxa-recebimento' | 'taxa-pagamento' = 'taxa-recebimento';
   readonly ajudaAberta = signal(false);
 
   readonly ajuda: HelpItem[] = [
@@ -914,9 +813,6 @@ export class TaxaComponent implements OnInit {
   onGranularidadeRecebimentoChange(v: string): void {
     this.svc.setGranularidadeRecebimento(v as 'dia' | 'mes');
   }
-  onGranularidadePagamentoChange(v: string): void {
-    this.svc.setGranularidadePagamento(v as 'dia' | 'mes');
-  }
 
   exportarTaxaPorCliente(): void {
     const dados = this.svc.taxaPorCliente().map(c => ({
@@ -935,24 +831,5 @@ export class TaxaComponent implements OnInit {
     }));
 
     this.excelExport.exportar(dados, 'taxa_recebimento_por_cliente');
-  }
-
-  exportarTaxaPorFornecedor(): void {
-    const dados = this.svc.taxaPorFornecedor().map(f => ({
-      'Código': f.codigo,
-      'Empresa': f.nomeEmpresa,
-      'Fornecedor': f.nomePessoa,
-      'Documento': f.numeroDocumento,
-      'Valor Esperado (R$)': f.valorEsperado,
-      'Valor Pago (R$)': f.valorPago,
-      'Ordem': f.ordem,
-      'Origem': f.origem,
-      'Forma de Cobrança': f.formaCobranca,
-      'Status': f.statusFinanceiro,
-      'Data Vencimento': f.dataVencimento,
-      'Data Baixa': f.dataBaixa,
-    }));
-
-    this.excelExport.exportar(dados, 'taxa_pagamento_por_fornecedor');
   }
 }

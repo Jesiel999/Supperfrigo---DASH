@@ -126,7 +126,8 @@ export type RecursoSistema =
   | 'aging'                   | 'cobrancas'               | 'receber'
   | 'pagar'                   | 'fluxo_caixa'             | 'usuarios'
   | 'permissoes'              | 'relatorios'              | 'aging_report'
-  | 'credito'                 | 'estoque_movimentacao'    | 'chamados_geral'  |   'taxa'  ;
+  | 'credito'                 | 'estoque_movimentacao'    | 'chamados_geral'  |   'taxa_recebimento'
+  | 'taxa_pagamento'  ;
 
 // ─── Nav
 export interface NavItem    { label: string; icon: string; route: string; badge?: number; permissao?: RecursoSistema; }

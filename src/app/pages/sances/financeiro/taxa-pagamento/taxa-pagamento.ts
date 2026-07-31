@@ -7,7 +7,7 @@ import { KpiCardInvertComponent } from '../../../../shared/components/kpi-card-i
 import { TopDevedoresBarComponent } from '../../../../shared/components/line-bar/line-bar';
 import { LineChartComponent } from '../../../../shared/components/line-chart/line-chart';
 import { ExcelExportService } from '../../../../shared/services/excel-export.service';
-import { TaxaPagamentoColumnProvider, TaxaRecebimentoColumnProvider } from '../../../../shared/components/tables/taxa/column-providers';
+import { TaxaPagamentoColumnProvider } from '../../../../shared/components/tables/taxa/column-providers';
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table';
 
 @Component({
@@ -26,7 +26,7 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
       <!-- Header -->
       <div class="page-header">
         <div>
-          <h1 class="page-title">Análise <span>Taxa de Recebimento e Pagamento</span></h1>
+          <h1 class="page-title">Análise <span>Taxa de Pagamento</span></h1>
           <p class="page-sub">
             Última atualização: <strong>{{ svc.ultimaAtualizacaoFormatada() }}</strong>
             • Próxima atualização: <strong>{{ svc.proximaAtualizacaoFormatada() }}</strong>
@@ -76,102 +76,6 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
           </div>
         </div>
       </div>
-
-      <!-- Abas -->
-      <div class="tabs">
-        <button class="tab" [class.active]="abaAtiva === 'taxa-recebimento'" (click)="abaAtiva = 'taxa-recebimento'">
-          📊 Taxa de Recebimento
-        </button>
-        <button class="tab" [class.active]="abaAtiva === 'taxa-pagamento'" (click)="abaAtiva = 'taxa-pagamento'">
-          📈 Taxa de Pagamento
-        </button>
-      </div>
-
-      <!-- ═══════════════ ABA RECEBIMENTO ═══════════════ -->
-      @if (abaAtiva === 'taxa-recebimento') {
-        <div class="kpi-grid">
-          <app-kpi-card
-            label="Valor a Receber" icon="🔴" variant="danger"
-            [value]="svc.kpiTxRecebimento().valorEsperado"
-            [delta]="svc.kpiTxRecebimento().variacaoEsperado"
-            [isCurrency]="true"
-          />
-          <app-kpi-card-invert
-            label="Valor Recebido" icon="✅" variant="success"
-            [value]="svc.kpiTxRecebimento().valorRealizado"
-            [delta]="svc.kpiTxRecebimento().variacaoRealizado"
-            [isCurrency]="true"
-          />
-          <app-kpi-card
-            label="Diferença" icon="💵" variant="info"
-            [value]="svc.kpiTxRecebimento().valorDiferenca"
-            [delta]="svc.kpiTxRecebimento().variacaoDiferenca"
-            [isCurrency]="true"
-          />
-        </div>
-
-        <div class="charts-row">
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <h2 class="card-title">Rank por Empresa</h2>
-                <p class="card-sub">Valor esperado a receber</p>
-              </div>
-            </div>
-            <app-top-devedores-bar [data]="svc.rankingRecebimentoParaGrafico()" />
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <h2 class="card-title">A Receber vs Recebido</h2>
-                <p class="card-sub">Comparativo por empresa</p>
-              </div>
-            </div>
-            <div class="legend">
-              <span class="legend-item"><span class="legend-dot" style="background:#f43f5e"></span> A Receber</span>
-              <span class="legend-item"><span class="legend-dot" style="background:#34d399"></span> Recebido</span>
-            </div>
-            <app-top-devedores-bar [data]="svc.comparativoRecebimento()" />
-          </div>
-        </div>
-
-        <div class="card chart-card">
-          <div class="card-header">
-            <div>
-              <h2 class="card-title">
-                Evolução {{ svc.granularidadeGraficoRecebimento() === 'mes' ? 'Mensal' : 'Diária' }}
-              </h2>
-              <p class="card-sub">A Receber (vermelho) vs Recebido (verde)</p>
-            </div>
-            <select class="select-mini" [value]="svc.granularidadeGraficoRecebimento()" (change)="onGranularidadeRecebimentoChange($any($event.target).value)">
-              <option value="dia">Por dia</option>
-              <option value="mes">Por mês</option>
-            </select>
-          </div>
-            <app-line-chart [series]="svc.seriesRecebimento()" />
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <h2 class="card-title">Taxa de Recebimento por Cliente</h2>
-              <p class="card-sub">{{ svc.taxaPorCliente().length }} clientes</p>
-            </div>
-            <button class="btn-export-mini" (click)="exportarTaxaPorCliente()">📊 Excel</button>
-          </div>
-          <div class="table-wrapper">
-            <app-data-table
-              [dados]="svc.recebimentoFiltrado()"
-              [colunas]="colunasRecebimento"
-              [nomeArquivo]="nomeArquivoRecebimento"
-            />
-          </div>
-        </div>
-      }
-
-      <!-- ═══════════════ ABA PAGAMENTO ═══════════════ -->
-      @if (abaAtiva === 'taxa-pagamento') {
         <div class="kpi-grid">
           <app-kpi-card
             label="Valor a Pagar" icon="🔴" variant="danger"
@@ -251,7 +155,6 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
             />
           </div>
         </div>
-      }
     </div>
   `,
   styles: [`
@@ -878,19 +781,15 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
     }
   `],
 })
-export class TaxaComponent implements OnInit {
-  private readonly recebimentoColunasProvider = new TaxaRecebimentoColumnProvider();
+export class TaxaPagamentoComponent implements OnInit {
   private readonly pagamentoColunasProvider = new TaxaPagamentoColumnProvider();
 
-  protected readonly colunasRecebimento = this.recebimentoColunasProvider.getColunas();
   protected readonly colunasPagamento = this.pagamentoColunasProvider.getColunas();
-  protected readonly nomeArquivoRecebimento = this.recebimentoColunasProvider.getNomeArquivoExport();
   protected readonly nomeArquivoPagamento = this.pagamentoColunasProvider.getNomeArquivoExport();
 
   protected readonly svc = inject(TaxaService);
   private readonly excelExport = inject(ExcelExportService);
 
-  abaAtiva: 'taxa-recebimento' | 'taxa-pagamento' = 'taxa-recebimento';
   readonly ajudaAberta = signal(false);
 
   readonly ajuda: HelpItem[] = [
@@ -910,31 +809,8 @@ export class TaxaComponent implements OnInit {
   onDataInicio(v: string): void { this.svc.dataInicio.set(v); }
   onDataFim(v: string): void { this.svc.dataFim.set(v); }
   recarregar(): void { this.svc.carregar(this.svc.dataInicio(), this.svc.dataFim()); }
-
-  onGranularidadeRecebimentoChange(v: string): void {
-    this.svc.setGranularidadeRecebimento(v as 'dia' | 'mes');
-  }
   onGranularidadePagamentoChange(v: string): void {
     this.svc.setGranularidadePagamento(v as 'dia' | 'mes');
-  }
-
-  exportarTaxaPorCliente(): void {
-    const dados = this.svc.taxaPorCliente().map(c => ({
-      'Código': c.codigo,
-      'Empresa': c.nomeEmpresa,
-      'Cliente': c.nomePessoa,
-      'Documento': c.numeroDocumento,
-      'Valor Esperado (R$)': c.valorEsperado,
-      'Valor Recebido (R$)': c.valorPago,
-      'Ordem': c.ordem,
-      'Origem': c.origem,
-      'Forma de Cobrança': c.formaCobranca,
-      'Status': c.statusFinanceiro,
-      'Data Vencimento': c.dataVencimento,
-      'Data Baixa': c.dataBaixa,
-    }));
-
-    this.excelExport.exportar(dados, 'taxa_recebimento_por_cliente');
   }
 
   exportarTaxaPorFornecedor(): void {

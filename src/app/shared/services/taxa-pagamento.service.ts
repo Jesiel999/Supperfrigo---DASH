@@ -6,7 +6,6 @@ import {
   TaxaApiItem,
   KpiTaxaValores,
   RankingTaxaEmpresa,
-  AgrupamentoTaxaPorCliente,
   AgrupamentoTaxaPorFornecedor,
 } from '../models/taxa.models';
 import { PontoGrafico, Serie } from '../models/graficos.models';
@@ -37,17 +36,12 @@ export class TaxaService {
   readonly periodo    = signal<string>('');
 
   // ─── Filtros locais ─────────────────────────────────────────
-  readonly filtroStatusTxRecebimento = signal<string>('todos');
   readonly filtroStatusTxPagamento   = signal<string>('todos');
-  readonly buscaRecebimento = signal<string>('');
   readonly buscaPagamento   = signal<string>('');
 
-  readonly carregandoTaxaRecebimento = signal<boolean>(false);
   readonly carregandoTaxaPagamento   = signal<boolean>(false);
 
   // ─── Dados brutos (nunca filtrados) ────────────────────────
-  private readonly _txRecebimentoBruto    = signal<TaxaApiItem[]>([]);
-  private readonly _txRecebimentoBrutoAnt = signal<TaxaApiItem[]>([]);
   private readonly _txPagamentoBruto      = signal<TaxaApiItem[]>([]);
   private readonly _txPagamentoBrutoAnt   = signal<TaxaApiItem[]>([]);
 
@@ -66,40 +60,30 @@ export class TaxaService {
   }
 
   proximaAtualizacao(data: string | null | undefined): string {
-    if (!data) return '-';
-    const dt = new Date(data.replace(' ', 'T'));
-    dt.setMinutes(dt.getMinutes() + 30);
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    }).format(dt);
-  }
+        if (!data) return '-';
+        const dt = new Date(data.replace(' ', 'T'));
+        dt.setMinutes(dt.getMinutes() + 30);
+        return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+        }).format(dt);
+    }
 
-  readonly ultimaAtualizacao = computed(() => {
-    const lista = this._txRecebimentoBruto();
-    if (!lista.length) return null;
+    readonly ultimaAtualizacao = computed(() => {
+        const lista = this._txPagamentoBruto();
+        if (!lista.length) return null;
 
-    return lista
-      .map(x => (x as any).ultima_atualizacao ?? (x as any)['ultima_atualização'])
-      .filter(Boolean)
-      .sort()
-      .at(-1) ?? null;
-  });
+        return lista
+        .map(x => (x as any).ultima_atualizacao ?? (x as any)['ultima_atualização'])
+        .filter(Boolean)
+        .sort()
+        .at(-1) ?? null;
+    });
 
   readonly ultimaAtualizacaoFormatada  = computed(() => this.formatarDataHora(this.ultimaAtualizacao()));
   readonly proximaAtualizacaoFormatada = computed(() => this.proximaAtualizacao(this.ultimaAtualizacao()));
 
   // ─── Base filtrada por empresa ──────────────────────────────
-  private readonly _recebimentoBase = computed(() => {
-    const empresas = this.empresaFilter.selecionadas();
-    const brutos = this._txRecebimentoBruto();
-    return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
-  });
-  private readonly _recebimentoBaseAnt = computed(() => {
-    const empresas = this.empresaFilter.selecionadas();
-    const brutos = this._txRecebimentoBrutoAnt();
-    return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
-  });
   private readonly _pagamentoBase = computed(() => {
     const empresas = this.empresaFilter.selecionadas();
     const brutos = this._txPagamentoBruto();
@@ -112,11 +96,6 @@ export class TaxaService {
   });
 
   // ─── + filtro de status ─────────────────────────────────────
-  readonly recebimentoFiltrado = computed(() => {
-    const status = this.filtroStatusTxRecebimento();
-    const base = this._recebimentoBase();
-    return status === 'todos' ? base : base.filter(c => c.status_financeiro === status);
-  });
   readonly pagamentoFiltrado = computed(() => {
     const status = this.filtroStatusTxPagamento();
     const base = this._pagamentoBase();
@@ -150,9 +129,6 @@ export class TaxaService {
     };
   }
 
-  readonly kpiTxRecebimento = computed((): KpiTaxaValores =>
-    this.kpis(this.recebimentoFiltrado(), this._recebimentoBaseAnt())
-  );
   readonly kpiTxPagamento = computed((): KpiTaxaValores =>
     this.kpis(this.pagamentoFiltrado(), this._pagamentoBaseAnt())
   );
@@ -188,19 +164,9 @@ export class TaxaService {
       .sort((a, b) => b.valorEsperado - a.valorEsperado);
   }
 
-  readonly rankingRecebimentoPorEmpresa = computed(() => this._rankingPorEmpresa(this.recebimentoFiltrado()));
   readonly rankingPagamentoPorEmpresa   = computed(() => this._rankingPorEmpresa(this.pagamentoFiltrado()));
 
   // ─── Adaptadores p/ reaproveitar TopDevedoresBarComponent ───
-  readonly rankingRecebimentoParaGrafico = computed((): MaioresDevedores[] =>
-    this.rankingRecebimentoPorEmpresa().map(r => ({
-      nome: r.nome,
-      valor: r.valorEsperado,
-      percentual: r.percentualDoTotal,
-      diasAtrasoMedio: Math.round(r.taxaRealizacao),
-    }))
-  );
-
   readonly rankingPagamentoParaGrafico = computed((): MaioresDevedores[] =>
     this.rankingPagamentoPorEmpresa().map(r => ({
       nome: r.nome,
@@ -209,14 +175,6 @@ export class TaxaService {
       diasAtrasoMedio: Math.round(r.taxaRealizacao),
     }))
   );
-
-  readonly comparativoRecebimento = computed((): MaioresDevedores[] => {
-    const kpi = this.kpiTxRecebimento();
-    return [
-      { nome: 'A Receber', valor: kpi.valorEsperado, percentual: 100, diasAtrasoMedio: 0 },
-      { nome: 'Recebido', valor: kpi.valorRealizado, percentual: kpi.valorEsperado > 0 ? (kpi.valorRealizado / kpi.valorEsperado) * 100 : 0, diasAtrasoMedio: 0 },
-    ];
-  });
 
   readonly comparativoPagamento = computed((): MaioresDevedores[] => {
     const kpi = this.kpiTxPagamento();
@@ -241,10 +199,8 @@ export class TaxaService {
     return Array.from(meses).sort();
   }
 
-  readonly granularidadeGraficoRecebimento = signal<'dia' | 'mes'>('dia');
   readonly granularidadeGraficoPagamento   = signal<'dia' | 'mes'>('dia');
 
-  setGranularidadeRecebimento(v: 'dia' | 'mes'): void { this.granularidadeGraficoRecebimento.set(v); }
   setGranularidadePagamento(v: 'dia' | 'mes'): void { this.granularidadeGraficoPagamento.set(v); }
 
   // Sem label/formatador aqui — isso agora é responsabilidade da Serie
@@ -283,21 +239,12 @@ export class TaxaService {
     };
   }
 
-  readonly linhasRecebimento = computed(() =>
-    this._construirLinhas(this.recebimentoFiltrado(), this.granularidadeGraficoRecebimento())
-  );
   readonly linhasPagamento = computed(() =>
     this._construirLinhas(this.pagamentoFiltrado(), this.granularidadeGraficoPagamento())
   );
 
   // ─── Séries prontas para o LineChartComponent ───────────────
-  readonly seriesRecebimento = computed((): Serie[] => {
-    const linhas = this.linhasRecebimento();
-    return [
-      { id: 'esperado', label: 'A Receber', cor: '#f43f5e', formatador: 'currency', pontos: linhas.esperado },
-      { id: 'realizado', label: 'Recebido', cor: '#34d399', formatador: 'currency', pontos: linhas.realizado },
-    ];
-  });
+  
 
   readonly seriesPagamento = computed((): Serie[] => {
     const linhas = this.linhasPagamento();
@@ -307,33 +254,6 @@ export class TaxaService {
     ];
   });
 
-  readonly taxaPorCliente = computed((): AgrupamentoTaxaPorCliente[] => {
-    const lista = this.recebimentoFiltrado();
-    const totalEsperado = lista.reduce((s, c) => s + c.valor_total, 0) || 1;
-
-    return lista
-      .map(c => ({
-        codigo: c.codigo,
-        nomePessoa: c.nome_pessoa,
-        nomeEmpresa: c.nome_empresa,
-        numeroDocumento: c.numero_documento,
-        ordem: c.ordem,
-        origem: c.origem,
-        formaCobranca: c.descricao_forma_cobranca,
-        statusFinanceiro: c.status_financeiro,
-        dataVencimento: c.data_vencimento,
-        dataBaixa: c.data_baixa,
-
-        label: c.nome_pessoa,
-
-        valorEsperado: c.valor_total,
-        valorPago: this._valorRealizado(c),
-
-        taxaPagamento: this._foiRealizado(c) ? 100 : 0,
-        percentualDoTotal: (c.valor_total / totalEsperado) * 100,
-      }))
-      .sort((a, b) => b.valorEsperado - a.valorEsperado);
-  });
 
   // ─── Tabela: Taxa por Fornecedor (pagamento) ───────────────
   readonly taxaPorFornecedor = computed((): AgrupamentoTaxaPorFornecedor[] => {
@@ -393,36 +313,27 @@ export class TaxaService {
     }
     this._diasPeriodo.set(dias);
 
-    this.carregandoTaxaRecebimento.set(true);
     this.carregandoTaxaPagamento.set(true);
 
     forkJoin({
-      recebimentoAtual:    this.api.getTxRecebimento(fmt(dtInicioAtual), fmt(dtFimAtual)),
-      recebimentoAnterior: this.api.getTxRecebimento(fmt(inicioAnterior), fmt(fimAnterior)),
       pagamentoAtual:      this.api.getTxPagamento(fmt(dtInicioAtual), fmt(dtFimAtual)),
       pagamentoAnterior:   this.api.getTxPagamento(fmt(inicioAnterior), fmt(fimAnterior)),
     }).subscribe({
-      next: ({ recebimentoAtual, recebimentoAnterior, pagamentoAtual, pagamentoAnterior }) => {
-        this._txRecebimentoBruto.set(recebimentoAtual.data ?? []);
-        this._txRecebimentoBrutoAnt.set(recebimentoAnterior.data ?? []);
+      next: ({ pagamentoAtual, pagamentoAnterior }) => {
         this._txPagamentoBruto.set(pagamentoAtual.data ?? []);
         this._txPagamentoBrutoAnt.set(pagamentoAnterior.data ?? []);
 
-        this.carregandoTaxaRecebimento.set(false);
         this.carregandoTaxaPagamento.set(false);
       },
       error: err => {
         console.error('Erro ao carregar taxas:', err);
-        this.carregandoTaxaRecebimento.set(false);
         this.carregandoTaxaPagamento.set(false);
       },
     });
   }
 
   // ─── Actions ────────────────────────────────────────────────
-  setBuscaRecebimento(v: string) { this.buscaRecebimento.set(v); }
   setBuscaPagamento(v: string)   { this.buscaPagamento.set(v); }
-  setFiltroStatusTxRecebimento(v: string) { this.filtroStatusTxRecebimento.set(v); }
   setFiltroStatusTxPagamento(v: string)   { this.filtroStatusTxPagamento.set(v); }
 
   // ─── Helpers privados ───────────────────────────────────────

@@ -33,18 +33,48 @@ export interface RankingTaxaEmpresa {
   percentualDoTotal: number;
 }
 
-export interface AgrupamentoTaxaPorFornecedor {
+export interface AgrupamentoTaxaPorCliente {
+  codigo: number;
+
+  nomePessoa: string;
+  nomeEmpresa: string;
+
+  numeroDocumento?: string;
+  ordem?: number;
+  origem?: string;
+  formaCobranca?: string;
+  statusFinanceiro?: string;
+
+  dataVencimento?: string;
+  dataBaixa?: string | null;
+
   label: string;
-  taxaPagamento: number;
+
   valorEsperado: number;
   valorPago: number;
+  taxaPagamento: number;
   percentualDoTotal: number;
 }
 
-export interface AgrupamentoTaxaPorCliente {
+export interface AgrupamentoTaxaPorFornecedor {
+  codigo: number;
+
+  nomePessoa: string;
+  nomeEmpresa: string;
+
+  numeroDocumento?: string;
+  ordem?: number;
+  origem?: string;
+  formaCobranca?: string;
+  statusFinanceiro?: string;
+
+  dataVencimento?: string;
+  dataBaixa?: string | null;
+
   label: string;
-  taxaPagamento: number;
+
   valorEsperado: number;
   valorPago: number;
+  taxaPagamento: number;
   percentualDoTotal: number;
 }
