@@ -3,18 +3,17 @@ import {
   computed, HostListener, OnInit,
 } from '@angular/core';
 import {
-  Router, NavigationEnd, RouterLink, RouterLinkActive
+  Router, NavigationEnd
 } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../auth/services/auth.service';
 import { EmpresaFilterService } from '../../shared/services/empresa-filter.service';
 import { MenuStateService } from '../../shared/services/menu-state.service';
-import { AplicacaoMenu } from '../../shared/models/usuario.models';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [],
   styles: [`
     .topbar {
       background: var(--surface); border-bottom: 1px solid var(--border);
@@ -112,16 +111,6 @@ import { AplicacaoMenu } from '../../shared/models/usuario.models';
     <header class="topbar">
       <button class="menu-btn" (click)="menuToggle.emit()">☰</button>
 
-      @if (currentTabs().length > 0) {
-        <nav class="tabs hide-mobile">
-          @for (tab of currentTabs(); track tab.route) {
-            <a class="tab" [routerLink]="tab.route" routerLinkActive="active">
-              {{ tab.label }}
-            </a>
-          }
-        </nav>
-      }
-
       <div class="topbar-right">
         @if (filter.empresasVisiveis().length > 0) {
           <div class="empresa-filter">
@@ -188,23 +177,6 @@ export class TopbarComponent implements OnInit {
 
   readonly dropdownEmpresa = signal(false);
   readonly currentUrl = signal('');
-
-  readonly currentAplicacao = computed((): AplicacaoMenu | null => {
-    const url = this.currentUrl();
-    for (const sis of this.menuState.sistemas()) {
-      const ap = sis.aplicacoes.find(a => a.modulos.some(m => m.rota && url.startsWith(m.rota)));
-      if (ap) return ap;
-    }
-    return null;
-  });
-
-  readonly currentTabs = computed(() => {
-    const ap = this.currentAplicacao();
-    if (!ap) return [];
-    return ap.modulos
-      .filter(m => !!m.rota)
-      .map(m => ({ label: m.nome, route: m.rota as string }));
-  });
 
   readonly labelEmpresas = computed(() => {
     if (this.filter.todasSelecionadas()) return 'Todas as empresas';

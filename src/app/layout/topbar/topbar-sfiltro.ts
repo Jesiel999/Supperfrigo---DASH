@@ -3,7 +3,7 @@ import {
   computed, HostListener, OnInit,
 } from '@angular/core';
 import {
-  Router, NavigationEnd, RouterLink, RouterLinkActive
+  Router, NavigationEnd
 } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../auth/services/auth.service';
@@ -14,7 +14,7 @@ import { AplicacaoMenu } from '../../shared/models/usuario.models';
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [],
   styles: [`
     .topbar {
       background: var(--surface); border-bottom: 1px solid var(--border);
@@ -84,15 +84,6 @@ import { AplicacaoMenu } from '../../shared/models/usuario.models';
     <header class="topbar">
       <button class="menu-btn" (click)="menuToggle.emit()">☰</button>
 
-      @if (currentTabs().length > 0) {
-        <nav class="tabs hide-mobile">
-          @for (tab of currentTabs(); track tab.route) {
-            <a class="tab" [routerLink]="tab.route" routerLinkActive="active">
-              {{ tab.label }}
-            </a>
-          }
-        </nav>
-      }
     </header>
   `,
 })
