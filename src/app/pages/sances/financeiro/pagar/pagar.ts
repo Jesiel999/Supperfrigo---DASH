@@ -1,177 +1,834 @@
-import { Component, signal, computed } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-
-type StatusP = 'pendente' | 'vencido' | 'pago' | 'agendado';
-interface ContaPagar {
-  id:string; fornecedor:string; categoria:string; descricao:string;
-  valor:number; vencimento:string; status:StatusP; dias_atraso:number; forma:string;
-}
-const MOCK: ContaPagar[] = [
-  { id:'p1', fornecedor:'Posto BR Gasolina',     categoria:'Combustível', descricao:'Abastecimento frota Jun',  valor:18400, vencimento:'2025-06-10', status:'pendente', dias_atraso:0,  forma:'Boleto'   },
-  { id:'p2', fornecedor:'Seguradora Mapfre',      categoria:'Seguros',     descricao:'Seguro frota anual',       valor:32000, vencimento:'2025-05-30', status:'vencido',  dias_atraso:6,  forma:'Débito'   },
-  { id:'p3', fornecedor:'Oficina Rota Diesel',    categoria:'Manutenção',  descricao:'Revisão caminhões',        valor:7800,  vencimento:'2025-05-25', status:'pago',     dias_atraso:0,  forma:'PIX'      },
-  { id:'p4', fornecedor:'Locação Galpão Sul',     categoria:'Aluguel',     descricao:'Galpão logístico Mai/Jun', valor:9500,  vencimento:'2025-06-05', status:'agendado', dias_atraso:0,  forma:'TED'      },
-  { id:'p5', fornecedor:'Telecom Fibra Net',      categoria:'Telecom',     descricao:'Link dedicado mensal',     valor:2400,  vencimento:'2025-05-20', status:'pago',     dias_atraso:0,  forma:'Débito'   },
-  { id:'p6', fornecedor:'Pneus Nordeste Ltda',    categoria:'Manutenção',  descricao:'Pneus novos lote 12',      valor:14200, vencimento:'2025-04-28', status:'vencido',  dias_atraso:38, forma:'Boleto'   },
-  { id:'p7', fornecedor:'Folha de Pagamento',     categoria:'RH',          descricao:'Salários Junho 2025',      valor:85000, vencimento:'2025-06-05', status:'agendado', dias_atraso:0,  forma:'TED'      },
-  { id:'p8', fornecedor:'Receita Federal',        categoria:'Impostos',    descricao:'IRPJ + CSLL trim 1',       valor:22000, vencimento:'2025-06-30', status:'pendente', dias_atraso:0,  forma:'DARF'     },
-];
-const ST: Record<StatusP, { label:string; css:string }> = {
-  pendente:  { label:'Pendente',  css:'st-pendente'  },
-  vencido:   { label:'Vencido',   css:'st-vencido'   },
-  pago:      { label:'Pago',      css:'st-pago'      },
-  agendado:  { label:'Agendado',  css:'st-agendado'  },
-};
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { PagarService } from '../../../../shared/services/pagar.service';
+import { HelpItem } from '../../../../shared/models/config.models';
+import { KpiCardComponent } from '../../../../shared/components/kpi-card/kpi-card';
+import { KpiCardInvertComponent } from '../../../../shared/components/kpi-card-invert/kpi-card';
+import { TopDevedoresBarComponent } from '../../../../shared/components/line-bar/line-bar';
+import { LineChartComponent } from '../../../../shared/components/line-chart/line-chart';
+import { ExcelExportService } from '../../../../shared/services/excel-export.service';
+import { TaxaPagamentoColumnProvider } from '../../../../shared/components/tables/pagar_receber/column-providers';
+import { DataTableComponent } from '../../../../shared/components/data-table/data-table';
 
 @Component({
-  selector: 'app-contas-pagar',
-  imports: [CurrencyPipe, DatePipe, FormsModule],
+  selector: 'app-pagar',
+  standalone: true,
+  imports: [
+    CommonModule,
+    KpiCardComponent,
+    KpiCardInvertComponent,
+    TopDevedoresBarComponent,
+    LineChartComponent,
+    DataTableComponent,
+  ],
   template: `
     <div class="page">
+      <!-- Header -->
       <div class="page-header">
         <div>
-          <h1 class="page-title">Contas a <span>Pagar</span></h1>
-          <p class="page-sub">Gestão de pagamentos · {{ dados().length }} títulos</p>
+          <h1 class="page-title">Análise <span>Contas a Pagar</span></h1>
+          <p class="page-sub">
+            Última atualização: <strong>{{ svc.ultimaAtualizacaoFormatada() }}</strong>
+            • Próxima atualização: <strong>{{ svc.proximaAtualizacaoFormatada() }}</strong>
+          </p>
         </div>
-        <button class="btn-novo">+ Novo Lançamento</button>
-      </div>
 
-      <div class="kpi-grid">
-        <div class="kpi danger">
-          <div class="kpi-label">Total a Pagar</div>
-          <div class="kpi-value accent">{{ totalPendente() | currency:'BRL':'symbol':'1.0-0' }}</div>
-          <div class="kpi-sub">{{ qtdPendente() }} em aberto</div>
-        </div>
-        <div class="kpi warning">
-          <div class="kpi-label">Vencido</div>
-          <div class="kpi-value orange">{{ totalVencido() | currency:'BRL':'symbol':'1.0-0' }}</div>
-          <div class="kpi-sub">{{ qtdVencido() }} títulos</div>
-        </div>
-        <div class="kpi info">
-          <div class="kpi-label">Agendado</div>
-          <div class="kpi-value blue">{{ totalAgendado() | currency:'BRL':'symbol':'1.0-0' }}</div>
-          <div class="kpi-sub">{{ qtdAgendado() }} a vencer</div>
-        </div>
-        <div class="kpi success">
-          <div class="kpi-label">Pago no Mês</div>
-          <div class="kpi-value green">{{ totalPago() | currency:'BRL':'symbol':'1.0-0' }}</div>
-          <div class="kpi-sub">{{ qtdPago() }} quitados</div>
-        </div>
-      </div>
+        <div class="header-right">
+          <div class="periodo-picker">
+            <input type="date" class="input-date" [value]="svc.dataInicio()" (change)="onDataInicio($any($event.target).value)" />
+            <span class="sep">→</span>
+            <input type="date" class="input-date" [value]="svc.dataFim()" (change)="onDataFim($any($event.target).value)" />
+            <button class="btn-filtrar" (click)="recarregar()">Filtrar</button>
+            <button class="help-btn" (click)="abrirAjuda()" title="Ajuda do Dashboard"><span>?</span></button>
 
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Títulos a Pagar</h2>
-          <div class="filters">
-            <input class="input-f" type="text" placeholder="🔍 Buscar…" [(ngModel)]="busca" (ngModelChange)="filtrar()"/>
-            <select class="sel-f" [(ngModel)]="filtroStatus" (ngModelChange)="filtrar()">
-              <option value="">Todos</option>
-              <option value="pendente">Pendente</option>
-              <option value="vencido">Vencido</option>
-              <option value="agendado">Agendado</option>
-              <option value="pago">Pago</option>
-            </select>
-            <select class="sel-f" [(ngModel)]="filtroCategoria" (ngModelChange)="filtrar()">
-              <option value="">Categoria</option>
-              <option>Combustível</option><option>Seguros</option>
-              <option>Manutenção</option><option>Aluguel</option>
-              <option>RH</option><option>Impostos</option>
-            </select>
+            @if (ajudaAberta()) {
+              <div class="help-backdrop" (click)="fecharAjuda()">
+                <div class="help-modal" (click)="$event.stopPropagation()">
+                  <div class="help-header">
+                    <div>
+                      <div class="help-badge">📊 Dashboard Contas a Pagar</div>
+                      <h2>Como interpretar este Dashboard</h2>
+                      <p>Entenda o significado de cada indicador apresentado nesta tela.</p>
+                    </div>
+                    <button class="close-btn" (click)="fecharAjuda()">✕</button>
+                  </div>
+                  <div class="help-body">
+                    @for (item of ajuda; track item.titulo) {
+                      <div class="help-card">
+                        <div class="help-icon">ℹ️</div>
+                        <div>
+                          <h4>{{ item.titulo }}</h4>
+                          <p>{{ item.descricao }}</p>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                  <div class="help-footer">
+                    <div class="footer-info">
+                      <strong>Dica</strong>
+                      <span>Todos os indicadores respeitam os filtros de período e empresas selecionadas.</span>
+                    </div>
+                    <button class="btn-entendi" (click)="fecharAjuda()">Entendi</button>
+                  </div>
+                </div>
+              </div>
+            }
           </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>Fornecedor</th><th>Categoria</th><th>Descrição</th>
-              <th>Valor</th><th>Vencimento</th><th>Atraso</th>
-              <th>Forma</th><th>Status</th><th>Ação</th>
-            </tr></thead>
-            <tbody>
-              @for (p of filtrados(); track p.id) {
-                <tr>
-                  <td class="cli-name">{{ p.fornecedor }}</td>
-                  <td><span class="cat-badge">{{ p.categoria }}</span></td>
-                  <td style="color:var(--muted);font-size:12px">{{ p.descricao }}</td>
-                  <td class="mono bold accent">{{ p.valor | currency:'BRL':'symbol':'1.0-0' }}</td>
-                  <td class="mono">{{ p.vencimento | date:'dd/MM/yy' }}</td>
-                  <td>@if(p.dias_atraso>0){ <span class="dias-badge">{{ p.dias_atraso }}d</span> } @else { <span style="color:var(--muted)">—</span> }</td>
-                  <td style="font-size:12px;color:var(--muted)">{{ p.forma }}</td>
-                  <td><span class="badge" [class]="stMap[p.status].css">{{ stMap[p.status].label }}</span></td>
-                  <td>
-                    <div class="act-row">
-                      <button class="btn-act" title="Marcar pago">✅</button>
-                      <button class="btn-act" title="Editar">✏️</button>
-                    </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
       </div>
+        <div class="kpi-grid">
+          <app-kpi-card
+            label="Valor a Pagar" icon="🔴" variant="danger"
+            [value]="svc.kpiTxPagamento().valorEsperado"
+            [delta]="svc.kpiTxPagamento().variacaoEsperado"
+            [isCurrency]="true"
+          />
+          <app-kpi-card-invert
+            label="Valor Pago" icon="✅" variant="success"
+            [value]="svc.kpiTxPagamento().valorRealizado"
+            [delta]="svc.kpiTxPagamento().variacaoRealizado"
+            [isCurrency]="true"
+          />
+          <app-kpi-card
+            label="Diferença" icon="💵" variant="info"
+            [value]="svc.kpiTxPagamento().valorDiferenca"
+            [delta]="svc.kpiTxPagamento().variacaoDiferenca"
+            [isCurrency]="true"
+          />
+        </div>
+
+        <div class="charts-row">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Rank por Empresa</h2>
+                <p class="card-sub">Valor esperado a pagar</p>
+              </div>
+            </div>
+            <app-top-devedores-bar [data]="svc.rankingPagamentoParaGrafico()" />
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">A Pagar vs Pago</h2>
+                <p class="card-sub">Comparativo por empresa</p>
+              </div>
+            </div>
+            <div class="legend">
+              <span class="legend-item"><span class="legend-dot" style="background:#f43f5e"></span> A Pagar</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#34d399"></span> Pago</span>
+            </div>
+            <app-top-devedores-bar [data]="svc.comparativoPagamento()" />
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">
+                Evolução {{ svc.granularidadeGraficoPagamento() === 'mes' ? 'Mensal' : 'Diária' }}
+              </h2>
+              <p class="card-sub">A Pagar (vermelho) vs Pago (verde)</p>
+            </div>
+            <select class="select-mini" [value]="svc.granularidadeGraficoPagamento()" (change)="onGranularidadePagamentoChange($any($event.target).value)">
+              <option value="dia">Por dia</option>
+              <option value="mes">Por mês</option>
+            </select>
+          </div>
+          <app-line-chart [series]="svc.seriesPagamento()" />
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Taxa de Pagamento por Fornecedor</h2>
+              <p class="card-sub">{{ svc.taxaPorFornecedor().length }} fornecedores</p>
+            </div>
+            <button class="btn-export-mini" (click)="exportarTaxaPorFornecedor()">📊 Excel</button>
+          </div>
+          <div class="table-wrapper">
+            <app-data-table
+              [dados]="svc.pagamentoFiltrado()"
+              [colunas]="colunasPagamento"
+              [nomeArquivo]="nomeArquivoPagamento"
+            />
+          </div>
+        </div>
     </div>
   `,
   styles: [`
-    .page{display:flex;flex-direction:column;gap:20px}
-    .page-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px}
-    .page-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.5px}
-    .page-title span{background:linear-gradient(90deg,#f43f5e,#fb923c);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    .page-sub{color:var(--muted);font-size:13px;margin-top:4px}
-    .btn-novo{background:linear-gradient(135deg,#f43f5e,#fb923c);border:none;border-radius:8px;color:white;font-size:12.5px;font-weight:600;font-family:'Outfit',sans-serif;padding:8px 16px;cursor:pointer}
-    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-    @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
-    @media(max-width:500px){.kpi-grid{grid-template-columns:1fr}}
-    .kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;position:relative;overflow:hidden}
-    .kpi-label{font-size:11.5px;color:var(--muted);margin-bottom:10px}
-    .kpi-value{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;letter-spacing:-1px;margin-bottom:5px}
-    .kpi-sub{font-size:11px;color:var(--muted)}
-    .accent{color:#f43f5e}.orange{color:#fb923c}.green{color:#34d399}.blue{color:#38bdf8}
-    .kpi::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:50%;filter:blur(30px);opacity:.2}
-    .kpi.danger::before{background:#f43f5e}.kpi.warning::before{background:#fb923c}
-    .kpi.success::before{background:#34d399}.kpi.info::before{background:#38bdf8}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
-    .card-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
-    .card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px}
-    .filters{display:flex;gap:8px;flex-wrap:wrap}
-    .input-f{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Outfit',sans-serif;padding:6px 12px;outline:none;width:150px}
-    .sel-f{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Outfit',sans-serif;padding:6px 10px;outline:none}
-    .table-wrap{overflow-x:auto}
-    table{width:100%;border-collapse:collapse;font-size:12.5px}
-    thead th{text-align:left;padding:9px 12px;font-size:10.5px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
-    tbody tr{border-bottom:1px solid rgba(255,255,255,.03);transition:background .15s}
-    tbody tr:hover{background:rgba(255,255,255,.03)}
-    tbody tr:last-child{border-bottom:none}
-    td{padding:10px 12px;vertical-align:middle}
-    .cli-name{font-weight:500}
-    .mono{font-family:'JetBrains Mono',monospace;font-size:12px}.bold{font-weight:600}
-    .badge{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:20px}
-    .cat-badge{background:rgba(167,139,250,.12);color:#a78bfa;border:1px solid rgba(167,139,250,.2);font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px}
-    .st-pendente{background:rgba(100,116,139,.12);color:var(--muted);border:1px solid var(--border)}
-    .st-vencido{background:rgba(244,63,94,.14);color:#f43f5e;border:1px solid rgba(244,63,94,.25)}
-    .st-pago{background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.2)}
-    .st-agendado{background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.2)}
-    .dias-badge{background:rgba(244,63,94,.14);color:#f43f5e;font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px}
-    .act-row{display:flex;gap:6px}
-    .btn-act{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,.05);cursor:pointer;font-size:13px;transition:background .15s}
-    .btn-act:hover{background:rgba(255,255,255,.1)}
+    .help-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.65);
+      backdrop-filter:blur(8px);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      z-index:9999;
+      animation:fadeIn .2s ease;
+  }
+
+  .help-modal{
+      width:850px;
+      max-width:95vw;
+      max-height:85vh;
+      overflow:hidden;
+      background:#141922;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:22px;
+      display:flex;
+      flex-direction:column;
+      box-shadow:
+          0 20px 60px rgba(0,0,0,.55);
+      animation:modalIn .25s ease;
+  }
+
+  .help-header{
+      padding:28px 30px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+  }
+
+  .help-badge{
+      display:inline-flex;
+      background:rgba(244,63,94,.15);
+      color:#f43f5e;
+      padding:5px 12px;
+      border-radius:50px;
+      font-size:12px;
+      margin-bottom:14px;
+  }
+
+  .help-header h2{
+      font-size:28px;
+      font-family:'Syne';
+      margin-bottom:8px;
+  }
+
+  .help-header p{
+      color:#9ca3af;
+      line-height:1.6;
+      max-width:600px;
+  }
+
+  .close-btn{
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      border:none;
+      background:rgba(255,255,255,.06);
+      color:white;
+      cursor:pointer;
+      transition:.2s;
+  }
+
+  .close-btn:hover{
+      background:#f43f5e;
+      transform:rotate(90deg);
+  }
+
+  .help-body{
+      flex:1;
+      overflow:auto;
+      padding:26px;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
+      gap:18px;
+  }
+
+  .help-card{
+      display:flex;
+      gap:18px;
+      background:#1a202c;
+      border:1px solid rgba(255,255,255,.05);
+      border-radius:16px;
+      padding:20px;
+      transition:.25s;
+  }
+
+  .help-card:hover{
+      transform:translateY(-4px);
+      border-color:#f43f5e;
+      box-shadow:0 10px 25px rgba(244,63,94,.12);
+  }
+
+  .help-icon{
+      width:52px;
+      height:52px;
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(244,63,94,.12);
+      font-size:24px;
+      flex-shrink:0;
+  }
+
+  .help-card h4{
+      margin:0;
+      font-size:15px;
+      color:white;
+      margin-bottom:8px;
+  }
+
+  .help-card p{
+      margin:0;
+      color:#9ca3af;
+      line-height:1.6;
+      font-size:13px;
+  }
+
+  .help-footer{
+      padding:20px 28px;
+      border-top:1px solid rgba(255,255,255,.06);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+  }
+
+  .footer-info{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+  }
+
+  .footer-info strong{
+      color:white;
+  }
+
+  .footer-info span{
+      color:#9ca3af;
+      font-size:13px;
+  }
+
+  .btn-entendi{
+      background:#f43f5e;
+      color:white;
+      border:none;
+      padding:10px 24px;
+      border-radius:10px;
+      font-weight:600;
+      cursor:pointer;
+      transition:.2s;
+  }
+
+  .btn-entendi:hover{
+      background:#e11d48;
+  }
+
+  @keyframes modalIn{
+      from{
+          opacity:0;
+          transform:translateY(20px) scale(.95);
+      }
+      to{
+          opacity:1;
+          transform:none;
+      }
+  }
+
+  @keyframes fadeIn{
+      from{
+          opacity:0;
+      }
+      to{
+          opacity:1;
+      }
+  }
+    .page {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 20px;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      margin: 0;
+    }
+
+    .page-title span {
+      background: linear-gradient(90deg, #056d99ff, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .page-sub {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 5px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Período picker ── */
+    .periodo-picker {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .input-date {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: 'Outfit', sans-serif;
+      padding: 5px 10px;
+      outline: none;
+      color-scheme: dark;
+    }
+
+    .sep {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .btn-filtrar {
+      background: rgba(244, 63, 94, 0.14);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      color: #f43f5e;
+      font-size: 12px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 500;
+      padding: 5px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-filtrar:hover {
+      background: rgba(244, 63, 94, 0.25);
+    }
+
+    .help-btn{
+        width:34px;
+        height:34px;
+
+        border-radius:50%;
+
+        border:1px solid var(--border);
+
+        background:rgba(255,255,255,.05);
+
+        color:var(--muted);
+
+        cursor:pointer;
+
+        transition:.2s;
+
+        font-weight:700;
+
+        font-size:15px;
+    }
+
+    .help-btn:hover{
+        background:#f43f5e;
+        color:white;
+        border-color:#f43f5e;
+    }
+
+    .select-mini {
+      background: rgba(255,255,255,.06); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 12px;
+      font-family: 'Outfit', sans-serif; padding: 5px 10px; outline: none;
+      cursor: pointer;
+    }
+
+    /* ── Live badge ── */
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(52, 211, 153, 0.1);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      background: #34d399;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* ── Botão de exportar excel ── */
+    .btn-export-mini {
+      background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.3);
+      color: #f43f5e; font-size: 11px; padding: 5px 12px; border-radius: 6px;
+      cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 500;
+      transition: background .2s;
+    }
+    .btn-export-mini:hover { background: rgba(244,63,94,.22); }
+
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(1.3);
+      }
+    }
+
+    /* ── Abas ── */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .tab {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      color: var(--text);
+    }
+
+    .tab.active {
+      border-bottom-color: #f43f5e;
+      color: #f43f5e;
+    }
+
+    /* ── KPI Grid ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .agrupamento-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .agrupamento-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .agrupamento-info {
+      flex: 1;
+    }
+
+    .agrupamento-nome {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .agrupamento-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .stat {
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    .agrupamento-valor {
+      text-align: right;
+    }
+
+    .agrupamento-valor .valor {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .agrupamento-valor .percentual {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.3px;
+      margin: 0;
+    }
+
+    .card-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 2px;
+      margin: 0;
+    }
+
+    /* ── Table ── */
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .data-table thead {
+      background: rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table th {
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .data-table tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    .data-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .data-table tbody tr.pago {
+      opacity: 0.6;
+    }
+
+    .data-table td {
+      padding: 12px;
+      color: var(--text);
+    }
+
+    .cell-nome {
+      font-weight: 500;
+    }
+
+    .cell-valor {
+      font-weight: 600;
+      color: #34d399;
+    }
+
+    .cell-data {
+      color: var(--muted);
+    }
+
+    .cell-dias {
+      text-align: center;
+    }
+
+    .cell-dias .positivo {
+      color: #fb923c;
+      font-weight: 500;
+    }
+
+    .cell-status {
+      text-align: center;
+    }
+
+    .status-pago {
+      background: rgba(52, 211, 153, 0.2);
+      color: #34d399;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+      font-size: 10px;
+    }
+
+    .status-aberto {
+      background: rgba(100, 116, 139, 0.2);
+      color: #cbd5e1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+      font-size: 10px;
+    }
+
+    .status-vencido {
+      background: rgba(244, 63, 94, 0.2);
+      color: #f43f5e;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+      font-size: 10px;
+    }
+
+    /* ── Filtros ── */
+    .table-filters {
+      display: flex;
+      gap: 8px;
+    }
+
+    .select-status {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: #34d399;
+      font-size: 12px;
+      font-family: 'Outfit', sans-serif;
+      padding: 6px 10px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* ── Responsivo ── */
+    @media (max-width: 1100px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .agrupamentos-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .page-header {
+        flex-direction: column;
+      }
+
+      .tabs {
+        flex-direction: column;
+      }
+
+      .tab {
+        padding: 8px 12px;
+      }
+
+      .agrupamento-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .agrupamento-valor {
+        margin-top: 8px;
+        width: 100%;
+      }
+    }
   `],
 })
-export class ContasPagarComponent {
-  readonly dados = signal(MOCK);
-  readonly filtrados = signal(MOCK);
-  busca = ''; filtroStatus = ''; filtroCategoria = '';
-  readonly stMap = ST;
-  readonly totalPendente  = computed(()=>this.dados().filter(p=>p.status==='pendente').reduce((s,p)=>s+p.valor,0));
-  readonly totalVencido   = computed(()=>this.dados().filter(p=>p.status==='vencido').reduce((s,p)=>s+p.valor,0));
-  readonly totalAgendado  = computed(()=>this.dados().filter(p=>p.status==='agendado').reduce((s,p)=>s+p.valor,0));
-  readonly totalPago      = computed(()=>this.dados().filter(p=>p.status==='pago').reduce((s,p)=>s+p.valor,0));
-  readonly qtdPendente    = computed(()=>this.dados().filter(p=>p.status==='pendente').length);
-  readonly qtdVencido     = computed(()=>this.dados().filter(p=>p.status==='vencido').length);
-  readonly qtdAgendado    = computed(()=>this.dados().filter(p=>p.status==='agendado').length);
-  readonly qtdPago        = computed(()=>this.dados().filter(p=>p.status==='pago').length);
-  filtrar(){
-    const b=this.busca.toLowerCase(); const s=this.filtroStatus; const c=this.filtroCategoria;
-    this.filtrados.set(this.dados().filter(p=>(!b||p.fornecedor.toLowerCase().includes(b))&&(!s||p.status===s)&&(!c||p.categoria===c)));
+export class PagarComponent implements OnInit {
+  private readonly pagamentoColunasProvider = new TaxaPagamentoColumnProvider();
+
+  protected readonly colunasPagamento = this.pagamentoColunasProvider.getColunas();
+  protected readonly nomeArquivoPagamento = this.pagamentoColunasProvider.getNomeArquivoExport();
+
+  protected readonly svc = inject(PagarService);
+  private readonly excelExport = inject(ExcelExportService);
+
+  readonly ajudaAberta = signal(false);
+
+  readonly ajuda: HelpItem[] = [
+    { titulo: 'Valor a Receber/Pagar', descricao: 'Soma de todos os títulos do período, independente de terem sido baixados.' },
+    { titulo: 'Valor Recebido/Pago', descricao: 'Soma apenas dos títulos que já possuem data de baixa registrada.' },
+    { titulo: 'Diferença', descricao: 'Valor esperado menos o valor realizado — quanto ainda falta ser liquidado.' },
+    { titulo: 'Taxa', descricao: 'Percentual do valor esperado que já foi efetivamente realizado (recebido/pago).' },
+  ];
+
+  abrirAjuda(): void { this.ajudaAberta.set(true); }
+  fecharAjuda(): void { this.ajudaAberta.set(false); }
+
+  ngOnInit(): void {
+    this.svc.carregar(this.svc.dataInicio(), this.svc.dataFim());
+  }
+
+  onDataInicio(v: string): void { this.svc.dataInicio.set(v); }
+  onDataFim(v: string): void { this.svc.dataFim.set(v); }
+  recarregar(): void { this.svc.carregar(this.svc.dataInicio(), this.svc.dataFim()); }
+  onGranularidadePagamentoChange(v: string): void {
+    this.svc.setGranularidadePagamento(v as 'dia' | 'mes');
+  }
+
+  exportarTaxaPorFornecedor(): void {
+    const dados = this.svc.taxaPorFornecedor().map(f => ({
+      'Código': f.codigo,
+      'Empresa': f.nomeEmpresa,
+      'Fornecedor': f.nomePessoa,
+      'Documento': f.numeroDocumento,
+      'Valor Esperado (R$)': f.valorEsperado,
+      'Valor Pago (R$)': f.valorPago,
+      'Ordem': f.ordem,
+      'Origem': f.origem,
+      'Forma de Cobrança': f.formaCobranca,
+      'Status': f.statusFinanceiro,
+      'Data Vencimento': f.dataVencimento,
+      'Data Baixa': f.dataBaixa,
+    }));
+
+    this.excelExport.exportar(dados, 'pagamento_por_fornecedor');
   }
 }

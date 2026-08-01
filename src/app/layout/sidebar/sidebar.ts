@@ -10,7 +10,7 @@ import { MenuStateService } from '../../shared/services/menu-state.service';
   template: `
     <aside class="sidebar" [class.open]="open()">
       <div class="logo">
-        <span class="logo-text">Core<em>View</em></span>
+        <span class="logo-text">Coruja</span>
         <button class="close-btn" (click)="fechar.emit()">✕</button>
       </div>
 

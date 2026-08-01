@@ -15,7 +15,7 @@ import { AuthService } from '../services/auth.service';
         <!-- Logo -->
         <div class="logo">
           <div class="logo-icon"><img class="logo-wkg" src="favicon-192x192.png"/></div>
-          <span class="logo-text">Core<em>View</em></span>
+          <span class="logo-text"><em>Coruja</em></span>
         </div>
 
         <h1 class="title">Bem-vindo de volta</h1>
@@ -81,7 +81,7 @@ import { AuthService } from '../services/auth.service';
         </form>
 
         <p class="footer-text">
-          CoreView © {{ ano }}
+          Coruja © {{ ano }}
         </p>
       </div>
     </div>

@@ -17,7 +17,7 @@ const PALETA_EMPRESAS = [
 ];
 
 @Injectable({ providedIn: 'root' })
-export class TaxaRecebimentoService {
+export class ReceberService {
     private readonly api = inject(ApiService);
     readonly empresaFilter = inject(EmpresaFilterService);
 
