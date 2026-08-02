@@ -9,7 +9,8 @@ import {
   AgrupamentoTaxaPorFornecedor,
 } from '../models/taxa.models';
 import { PontoGrafico, Serie } from '../models/graficos.models';
-import { MaioresDevedores } from '../models/financeiro.models';
+import { MaioresDevedores, Pessoa } from '../models/financeiro.models';
+import { FiltroOpcao } from '../components/multi-select-filter/pessoa_filter';
 
 const PALETA_EMPRESAS = [
   '#f43f5e', '#fb923c', '#38bdf8', '#a78bfa',
@@ -40,6 +41,8 @@ export class PagarService {
   readonly buscaPagamento   = signal<string>('');
 
   readonly carregandoTaxaPagamento   = signal<boolean>(false);
+  
+  readonly filtroPessoas = signal<Set<number>>(new Set());
 
   // ─── Dados brutos (nunca filtrados) ────────────────────────
   private readonly _txPagamentoBruto      = signal<TaxaApiItem[]>([]);
@@ -60,55 +63,79 @@ export class PagarService {
   }
 
   proximaAtualizacao(data: string | null | undefined): string {
-        if (!data) return '-';
-        const dt = new Date(data.replace(' ', 'T'));
-        dt.setMinutes(dt.getMinutes() + 30);
-        return new Intl.DateTimeFormat('pt-BR', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-        }).format(dt);
-    }
+      if (!data) return '-';
+      const dt = new Date(data.replace(' ', 'T'));
+      dt.setMinutes(dt.getMinutes() + 30);
+      return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+      }).format(dt);
+  }
 
-    readonly ultimaAtualizacao = computed(() => {
-        const lista = this._txPagamentoBruto();
-        if (!lista.length) return null;
+  readonly ultimaAtualizacao = computed(() => {
+      const lista = this._txPagamentoBruto();
+      if (!lista.length) return null;
 
-        return lista
-        .map(x => (x as any).ultima_atualizacao ?? (x as any)['ultima_atualização'])
-        .filter(Boolean)
-        .sort()
-        .at(-1) ?? null;
-    });
+      return lista
+      .map(x => (x as any).ultima_atualizacao ?? (x as any)['ultima_atualização'])
+      .filter(Boolean)
+      .sort()
+      .at(-1) ?? null;
+  });
 
   readonly ultimaAtualizacaoFormatada  = computed(() => this.formatarDataHora(this.ultimaAtualizacao()));
   readonly proximaAtualizacaoFormatada = computed(() => this.proximaAtualizacao(this.ultimaAtualizacao()));
 
-  // ─── Base filtrada por empresa ──────────────────────────────
-  private readonly _pagamentoBase = computed(() => {
+  private _filtrarPorPessoa(lista: TaxaApiItem[]): TaxaApiItem[] {
+    const pessoas = this.filtroPessoas();
+    if (pessoas.size === 0) return lista;
+    return lista.filter(c => pessoas.has(Number(c.id_pessoa)));
+  }
+
+  private readonly _pagamentoBaseEmpresa = computed(() => {
     const empresas = this.empresaFilter.selecionadas();
     const brutos = this._txPagamentoBruto();
     return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
   });
-  private readonly _pagamentoBaseAnt = computed(() => {
+  private readonly _pagamentoBaseEmpresaAnt = computed(() => {
     const empresas = this.empresaFilter.selecionadas();
     const brutos = this._txPagamentoBrutoAnt();
     return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
   });
 
-  // ─── + filtro de status ─────────────────────────────────────
+  private readonly _pagamentoBase = computed(() =>
+    this._filtrarPorPessoa(this._pagamentoBaseEmpresa())
+  );
+  private readonly _pagamentoBaseAnt = computed(() =>
+    this._filtrarPorPessoa(this._pagamentoBaseEmpresaAnt())
+  );
+
   readonly pagamentoFiltrado = computed(() => {
     const status = this.filtroStatusTxPagamento();
     const base = this._pagamentoBase();
     return status === 'todos' ? base : base.filter(c => c.status_financeiro === status);
   });
 
-  // ─── Helper central: um título é "realizado" quando tem data_baixa ─
   private _foiRealizado(item: TaxaApiItem): boolean {
     return !!item.data_baixa;
   }
   private _valorRealizado(item: TaxaApiItem): number {
     return this._foiRealizado(item) ? item.valor_total : 0;
   }
+
+  readonly opcoesPessoa = computed((): FiltroOpcao[] => {
+    const base = this._pagamentoBaseEmpresa();
+    const map  = new Map<number, string>();
+
+    base.forEach(c => {
+      const id = Number(c.id_pessoa);
+      if (!map.has(id)) map.set(id, c.nome_pessoa ?? `Cliente #${id}`);
+    });
+
+    return Array.from(map.entries())
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  });
 
   // ─── KPIs de topo ───────────────────────────────────────────
   private kpis(atual: TaxaApiItem[], anterior: TaxaApiItem[]): KpiTaxaValores {
@@ -132,21 +159,19 @@ export class PagarService {
   readonly kpiTxPagamento = computed((): KpiTaxaValores =>
     this.kpis(this.pagamentoFiltrado(), this._pagamentoBaseAnt())
   );
-
-  // ─── Agrupamento de filiais — pega só o primeiro "nome" da razão social ─
+  
   private _nomeGrupoEmpresa(nome: string | null | undefined): string {
     if (!nome) return 'Sem empresa';
     const primeiro = nome.trim().split(/\s+/)[0];
     return primeiro || 'Sem empresa';
   }
 
-  // ─── Ranking por empresa ────────────────────────────────────
   private _rankingPorEmpresa(lista: TaxaApiItem[]): RankingTaxaEmpresa[] {
     const totalEsperado = lista.reduce((s, c) => s + c.valor_total, 0) || 1;
     const map = new Map<string, { esperado: number; realizado: number }>();
 
     lista.forEach(c => {
-      const key = this._nomeGrupoEmpresa(c.nome_empresa);   // ← agrupado, não mais nome_empresa cru
+      const key = this._nomeGrupoEmpresa(c.nome_empresa);   
       if (!map.has(key)) map.set(key, { esperado: 0, realizado: 0 });
       const item = map.get(key)!;
       item.esperado  += c.valor_total;
@@ -166,7 +191,6 @@ export class PagarService {
 
   readonly rankingPagamentoPorEmpresa   = computed(() => this._rankingPorEmpresa(this.pagamentoFiltrado()));
 
-  // ─── Adaptadores p/ reaproveitar TopDevedoresBarComponent ───
   readonly rankingPagamentoParaGrafico = computed((): MaioresDevedores[] =>
     this.rankingPagamentoPorEmpresa().map(r => ({
       nome: r.nome,
@@ -203,7 +227,6 @@ export class PagarService {
 
   setGranularidadePagamento(v: 'dia' | 'mes'): void { this.granularidadeGraficoPagamento.set(v); }
 
-  // Sem label/formatador aqui — isso agora é responsabilidade da Serie
   private _construirLinhas(
     lista: TaxaApiItem[],
     granularidade: 'dia' | 'mes',
@@ -335,6 +358,23 @@ export class PagarService {
   // ─── Actions ────────────────────────────────────────────────
   setBuscaPagamento(v: string)   { this.buscaPagamento.set(v); }
   setFiltroStatusTxPagamento(v: string)   { this.filtroStatusTxPagamento.set(v); }
+
+  togglePessoa(id: number): void {
+    const nova = new Set(this.filtroPessoas());
+    nova.has(id) ? nova.delete(id) : nova.add(id);
+    this.filtroPessoas.set(nova);
+  }
+
+  toggleTodasPessoas(): void {
+    const atual   = this.filtroPessoas();
+    const opcoes  = this.opcoesPessoa();
+
+    if (atual.size > 0 && atual.size === opcoes.length) {
+      this.filtroPessoas.set(new Set());
+    } else {
+      this.filtroPessoas.set(new Set(opcoes.map(o => o.id)));
+    }
+  }
 
   // ─── Helpers privados ───────────────────────────────────────
   private _var(atual: number, anterior: number): number {

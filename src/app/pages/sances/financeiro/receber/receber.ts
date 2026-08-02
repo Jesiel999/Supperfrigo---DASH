@@ -9,6 +9,7 @@ import { LineChartComponent } from '../../../../shared/components/line-chart/lin
 import { ExcelExportService } from '../../../../shared/services/excel-export.service';
 import { TaxaRecebimentoColumnProvider } from '../../../../shared/components/tables/pagar_receber/column-providers';
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table';
+import { MultiSelectFilterComponent } from '../../../../shared/components/multi-select-filter/pessoa_filter';
 
 @Component({
   selector: 'app-taxa',
@@ -20,6 +21,7 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
     TopDevedoresBarComponent,
     LineChartComponent,
     DataTableComponent,
+    MultiSelectFilterComponent,
   ],
   template: `
     <div class="page">
@@ -34,6 +36,14 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
         </div>
 
         <div class="header-right">
+          <app-multi-select-filter
+            label="Pessoa"
+            icon="🙋"
+            [opcoes]="svc.opcoesPessoa()"
+            [selecionados]="svc.filtroPessoas()"
+            (toggleId)="svc.togglePessoa($event)"
+            (toggleTodasEvt)="svc.toggleTodasPessoas()"
+          />
           <div class="periodo-picker">
             <input type="date" class="input-date" [value]="svc.dataInicio()" (change)="onDataInicio($any($event.target).value)" />
             <span class="sep">→</span>

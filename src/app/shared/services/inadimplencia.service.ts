@@ -3,7 +3,7 @@ import { EmpresaFilterService } from './empresa-filter.service';
 import { ApiService } from './api.service';
 import { forkJoin } from 'rxjs';
 import {
-  ClienteInadimplente,
+  Pessoa,
   FaixaAtraso,
   InadimplenciaApiItem,
   KpiInadimplencia,
@@ -46,8 +46,8 @@ export class InadimplenciaService {
 
   readonly filtroPessoas = signal<Set<number>>(new Set());
 
-  private readonly _todosBrutos      = signal<ClienteInadimplente[]>([]);
-  private readonly _todosBrutosAnt   = signal<ClienteInadimplente[]>([]);
+  private readonly _todosBrutos      = signal<Pessoa[]>([]);
+  private readonly _todosBrutosAnt   = signal<Pessoa[]>([]);
   private readonly _diasPeriodo      = signal<string[]>([]);
   private readonly _fmtInicio        = signal<string>('');
   private readonly _fmtFim           = signal<string>('');
@@ -122,8 +122,7 @@ export class InadimplenciaService {
     return semBaixa.filter(c => empresas.has(Number(c.id_empresa)));
   });
 
-  // ─── Filtro de id_pessoa aplicado por cima da base ────────────
-  private _filtrarPorPessoa(lista: ClienteInadimplente[]): ClienteInadimplente[] {
+  private _filtrarPorPessoa(lista: Pessoa[]): Pessoa[] {
     const pessoas = this.filtroPessoas();
     if (pessoas.size === 0) return lista;
     return lista.filter(c => pessoas.has(Number(c.id_pessoa)));
@@ -137,7 +136,6 @@ export class InadimplenciaService {
     this._filtrarPorPessoa(this._inadimplentesBaseAnt())
   );
 
-  // ─── Opções para o dropdown de clientes (id_pessoa) ───────────
   readonly opcoesPessoa = computed((): FiltroOpcao[] => {
     const base = this._inadimplentesBase();
     const map  = new Map<number, string>();
@@ -233,7 +231,6 @@ export class InadimplenciaService {
     }));
   });
 
-  // ─── Evolução por CLIENTES DISTINTOS (dia ou mês) ─────────────
   // conta clientes únicos por bucket usando Set.
   readonly pontosGraficoClientes = computed((): PontoGrafico[] => {
     const inadAtual = this._inadimplentes();
@@ -369,15 +366,12 @@ export class InadimplenciaService {
       }));
   });
   
-  // RETORNA O VALOR TOTAL INADIMPLENTE
   readonly totalTitulos = computed(() => {
     return this._inadimplentes().length;
   });
 
-  // ─── Clientes filtrados para a tabela — computed reativo ──────
-  readonly clientesFiltrados = computed((): ClienteInadimplente[] => {
+  readonly clientesFiltrados = computed((): Pessoa[] => {
     const busca  = this.busca().toLowerCase().trim();
-    const status = this.filtroStatus();
 
     return this._inadimplentesBase().filter(c => {
 
@@ -397,7 +391,6 @@ export class InadimplenciaService {
     });
   });
 
-  // ─── carregar — APENAS busca e armazena dados brutos ─────────
   carregar(dataInicio?: string, dataFim?: string): void {
     const inicioAtual = dataInicio ?? this.dataInicio();
     const fimAtual    = dataFim    ?? this.dataFim();
@@ -449,7 +442,7 @@ export class InadimplenciaService {
   }
 
   // ─── Mapear item da API ───────────────────────────────────────
-  private mapApiItem(item: InadimplenciaApiItem): ClienteInadimplente {
+  private mapApiItem(item: InadimplenciaApiItem): Pessoa {
     return {
       codigo:                   item.codigo,
       id:                       Number(item.id_pessoa),

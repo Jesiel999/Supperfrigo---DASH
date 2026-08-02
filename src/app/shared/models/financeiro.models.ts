@@ -1,6 +1,6 @@
 // ─── Inadimplência 
 export type StatusInadimplencia = 'VENCIDO' | 'PAGO' | 'EM ABERTO';
-export interface ClienteInadimplente {
+export interface Pessoa {
   codigo: number;
   id: number;
   id_empresa: number;

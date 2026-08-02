@@ -10,6 +10,7 @@ import {
 } from '../models/taxa.models';
 import { PontoGrafico, Serie } from "../models/graficos.models";
 import { MaioresDevedores } from "../models/financeiro.models";
+import { FiltroOpcao } from '../components/multi-select-filter/pessoa_filter';
 
 const PALETA_EMPRESAS = [
     '#f43f5e', '#fb923c', '#38bdf8', '#a78bfa',
@@ -35,10 +36,11 @@ export class ReceberService {
     readonly periodo    = signal<string>('');
 
     readonly filtroStatusTxRecebimento = signal<string>('todos');
-    readonly filtroStatusTxPagamento = signal<string>('todos');
     readonly buscaRecebimento = signal<string>('');
 
     readonly carregandoTaxaRecebimento = signal<boolean>(false);
+
+    readonly filtroPessoas = signal<Set<number>>(new Set());
 
     private readonly _txRecebimentoBruto = signal<TaxaApiItem[]>([]);
     private readonly _txRecebimentoBrutoAnt = signal<TaxaApiItem[]>([]);
@@ -81,35 +83,57 @@ export class ReceberService {
     readonly ultimaAtualizacaoFormatada  = computed(() => this.formatarDataHora(this.ultimaAtualizacao()));
     readonly proximaAtualizacaoFormatada = computed(() => this.proximaAtualizacao(this.ultimaAtualizacao()));
 
+    private _filtrarPorPessoa(lista: TaxaApiItem[]): TaxaApiItem[] {
+      const pessoas = this.filtroPessoas();
+      if (pessoas.size === 0) return lista;
+      return lista.filter(c => pessoas.has(Number(c.id_pessoa)));
+    }
 
-    // ─── Base filtrada por empresa ──────────────────────────────
-    private readonly _recebimentoBase = computed(() => {
-        const empresas = this.empresaFilter.selecionadas();
-        const brutos = this._txRecebimentoBruto();
-        return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
+    private readonly _recebimentoBaseEmpresa = computed(() => {
+      const empresas = this.empresaFilter.selecionadas();
+      const brutos = this._txRecebimentoBruto();
+      return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
     });
-    private readonly _recebimentoBaseAnt = computed(() => {
-        const empresas = this.empresaFilter.selecionadas();
-        const brutos = this._txRecebimentoBrutoAnt();
-        return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
+    private readonly _recebimentoBaseEmpresaAnt = computed(() => {
+      const empresas = this.empresaFilter.selecionadas();
+      const brutos = this._txRecebimentoBrutoAnt();
+      return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
     });
 
-    // ─── + filtro de status ─────────────────────────────────────
+    private readonly _recebimentoBase = computed(() =>
+      this._filtrarPorPessoa(this._recebimentoBaseEmpresa())
+    );
+    private readonly _recebimentoBaseAnt = computed(() =>
+      this._filtrarPorPessoa(this._recebimentoBaseEmpresaAnt())
+    );
+
     readonly recebimentoFiltrado = computed(() => {
-        const status = this.filtroStatusTxRecebimento();
-        const base = this._recebimentoBase();
-        return status === 'todos' ? base : base.filter(c => c.status_financeiro === status);
+      const status = this.filtroStatusTxRecebimento();
+      const base = this._recebimentoBase();
+      return status === 'todos' ? base : base.filter(c => c.status_financeiro === status);
     });
 
-     // ─── Helper central: um título é "realizado" quando tem data_baixa ─
     private _foiRealizado(item: TaxaApiItem): boolean {
-        return !!item.data_baixa;
+      return !!item.data_baixa;
     }
     private _valorRealizado(item: TaxaApiItem): number {
-        return this._foiRealizado(item) ? item.valor_total : 0;
+      return this._foiRealizado(item) ? item.valor_total : 0;
     }
 
-    // ─── KPIs de topo ───────────────────────────────────────────
+    readonly opcoesPessoa = computed((): FiltroOpcao[] => {
+      const base = this._recebimentoBaseEmpresa();
+      const map  = new Map<number, string>();
+
+      base.forEach(c => {
+        const id = Number(c.id_pessoa);
+        if (!map.has(id)) map.set(id, c.nome_pessoa ?? `Cliente #${id}`);
+      });
+
+      return Array.from(map.entries())
+        .map(([id, nome]) => ({ id, nome }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+    });
+
     private kpis(atual: TaxaApiItem[], anterior: TaxaApiItem[]): KpiTaxaValores {
         const calcular = (lista: TaxaApiItem[]) => {
         const esperado  = lista.reduce((s, c) => s + (c.valor_total ?? 0), 0);
@@ -145,7 +169,7 @@ export class ReceberService {
         const map = new Map<string, { esperado: number; realizado: number }>();
 
         lista.forEach(c => {
-        const key = this._nomeGrupoEmpresa(c.nome_empresa);   // ← agrupado, não mais nome_empresa cru
+        const key = this._nomeGrupoEmpresa(c.nome_empresa);  
         if (!map.has(key)) map.set(key, { esperado: 0, realizado: 0 });
         const item = map.get(key)!;
         item.esperado  += c.valor_total;
@@ -199,11 +223,9 @@ export class ReceberService {
       }
     
       readonly granularidadeGraficoRecebimento = signal<'dia' | 'mes'>('dia');
-      readonly granularidadeGraficoPagamento   = signal<'dia' | 'mes'>('dia');
-    
+
       setGranularidadeRecebimento(v: 'dia' | 'mes'): void { this.granularidadeGraficoRecebimento.set(v); }
-      setGranularidadePagamento(v: 'dia' | 'mes'): void { this.granularidadeGraficoPagamento.set(v); }
-    
+
       // Sem label/formatador aqui — isso agora é responsabilidade da Serie
       private _construirLinhas(
         lista: TaxaApiItem[],
@@ -335,7 +357,24 @@ export class ReceberService {
       // ─── Actions ────────────────────────────────────────────────
       setBuscaRecebimento(v: string) { this.buscaRecebimento.set(v); }
       setFiltroStatusTxRecebimento(v: string) { this.filtroStatusTxRecebimento.set(v); }
-    
+      
+      togglePessoa(id: number): void {
+        const nova = new Set(this.filtroPessoas());
+        nova.has(id) ? nova.delete(id) : nova.add(id);
+        this.filtroPessoas.set(nova);
+      }
+
+      toggleTodasPessoas(): void {
+        const atual   = this.filtroPessoas();
+        const opcoes  = this.opcoesPessoa();
+
+        if (atual.size > 0 && atual.size === opcoes.length) {
+          this.filtroPessoas.set(new Set());
+        } else {
+          this.filtroPessoas.set(new Set(opcoes.map(o => o.id)));
+        }
+      }
+
       // ─── Helpers privados ───────────────────────────────────────
       private _var(atual: number, anterior: number): number {
         if (anterior === 0) return atual > 0 ? 100 : 0;
