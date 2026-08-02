@@ -28,27 +28,24 @@ export class InadimplenciaService {
     const hoje = new Date();
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
   }
-  private getHoje(): string {
-    const ontem = new Date();
-    ontem.setDate(ontem.getDate() - 1);
+  private getUltimoDiaMes(): string {
+    const hoje = new Date();
 
-    return `${ontem.getFullYear()}-${String(ontem.getMonth() + 1).padStart(2, '0')}-${String(ontem.getDate()).padStart(2, '0')}`;
+    const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+    return `${ultimoDia.getFullYear()}-${String(ultimoDia.getMonth() + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
   }
   
 
   readonly dataInicio = signal<string>(this.getPrimeiroDiaMes());
-  readonly dataFim    = signal<string>(this.getHoje());
+  readonly dataFim    = signal<string>(this.getUltimoDiaMes());
   readonly periodo    = signal<string>('');
 
-  // ─── Filtros locais ───────────────────────────────────────────
   readonly filtroStatus = signal<string>('todos');
   readonly busca        = signal<string>('');
   readonly carregando   = signal<boolean>(false);
 
-  // Conjunto vazio == "todos" (sem restrição) — mesma convenção do
   readonly filtroPessoas = signal<Set<number>>(new Set());
 
-  // ─── Dados BRUTOS vindos da API (nunca filtrados) ─────────────
   private readonly _todosBrutos      = signal<ClienteInadimplente[]>([]);
   private readonly _todosBrutosAnt   = signal<ClienteInadimplente[]>([]);
   private readonly _diasPeriodo      = signal<string[]>([]);
@@ -105,7 +102,6 @@ export class InadimplenciaService {
     this.proximaAtualizacao(this.ultimaAtualizacao())
   );
 
-  // ─── Filtro de empresa aplicado reativamente (BASE — sem id_pessoa) ──
   private readonly _inadimplentesBase = computed(() => {
     const brutos   = this._todosBrutos();
     const empresas = this.empresaFilter.selecionadas();

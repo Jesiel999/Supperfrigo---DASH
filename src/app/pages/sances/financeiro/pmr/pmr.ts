@@ -1,9 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { PmpPmrService } from '../../../../shared/services/pmp-pmr.service';
+import { PmrService } from '../../../../shared/services/pmr.service';
 import { KpiCardComponent } from '../../../../shared/components/pmp-pmr/kpi-card/kpi-card';
 import { DataTablePmrComponent } from '../../../../shared/components/pmp-pmr/data-table-pmr/data-table';
-import { DataTablePmpComponent } from '../../../../shared/components/pmp-pmr/data-table-pmp/data-table';
 import { HelpItem } from '../../../../shared/models/config.models';
 
 @Component({
@@ -12,7 +11,6 @@ import { HelpItem } from '../../../../shared/models/config.models';
   imports: [
     CommonModule,
     KpiCardComponent,
-    DataTablePmpComponent,
     DataTablePmrComponent,
   ],
   template: `
@@ -20,7 +18,7 @@ import { HelpItem } from '../../../../shared/models/config.models';
       <!-- Header -->
       <div class="page-header">
         <div>
-          <h1 class="page-title">Análise <span>PMP & PMR</span></h1>
+          <h1 class="page-title">Análise <span>Prazo Médio de Recebimento</span></h1>
           <p class="page-sub">
             Última atualização:
             <strong>{{ svc.ultimaAtualizacaoFormatada() }}</strong>
@@ -58,7 +56,7 @@ import { HelpItem } from '../../../../shared/models/config.models';
                       <div class="help-header">
                           <div>
                               <div class="help-badge">
-                                  📊 Dashboard PMP & PMR
+                                  📊 Dashboard Prazo Médio de Recebimento
                               </div>
                               <h2>Como interpretar este Dashboard</h2>
                               <p>
@@ -75,12 +73,10 @@ import { HelpItem } from '../../../../shared/models/config.models';
                               <div class="help-card">
                                   <div class="help-icon">
                                       @switch (item.titulo) {
-                                        @case ("PMP (Prazo Médio de Pagamento)") { ⏱️ }
                                         @case ("PMR (Prazo Médio de Recebimento)") { 📈 }
                                         @case ("Quantidade de Títulos") { 📄 }
                                         @case ("Valor Médio") { 💰 }
                                         @case ("Valor Total") { 💵 }
-                                        @case ("PMP por Fornecedor") { 🏢 }
                                         @case ("PMR por Cliente") { 👥 }
                                         @case ("Tabela de Títulos") { 📋 }
                                         @case ("Última Atualização") { 🔄 }
@@ -116,108 +112,6 @@ import { HelpItem } from '../../../../shared/models/config.models';
           </div>
         </div>
       </div>
-
-      <!-- Abas -->
-      <div class="tabs">
-        <button 
-          class="tab" 
-          [class.active]="abaAtiva === 'pmp'"
-          (click)="abaAtiva = 'pmp'"
-        >
-          📊 PMP - Prazo Médio de Pagamento
-        </button>
-        <button 
-          class="tab" 
-          [class.active]="abaAtiva === 'pmr'"
-          (click)="abaAtiva = 'pmr'"
-        >
-          📈 PMR - Prazo Médio de Recebimento
-        </button>
-      </div>
-
-      <!-- ABA PMP -->
-      <ng-container *ngIf="abaAtiva === 'pmp'">
-        <!-- KPIs PMP -->
-        <div class="kpi-grid">
-          <app-kpi-card
-            label="PMP — Dias"
-            icon="⏱️"
-            variant="info"
-            [value]="svc.kpisPmp().pmpDias"
-            [delta]="svc.kpisPmp().variacaoPmp"
-            [isCurrency]="false"
-            suffix=" dias"
-          />
-          <app-kpi-card
-            label="Quantidade de Títulos"
-            icon="📋"
-            variant="warning"
-            [value]="svc.kpisPmp().qtdTitulos"
-            [delta]="svc.kpisPmp().variacaoQtd"
-            [isCurrency]="false"
-          />
-          <app-kpi-card
-            label="Valor Médio"
-            icon="💰"
-            variant="success"
-            [value]="svc.kpisPmp().valorMedio"
-            [delta]="svc.kpisPmp().variacaoValor"
-            [isCurrency]="true"
-          />
-          <app-kpi-card
-            label="Valor Total"
-            icon="💵"
-            variant="danger"
-            [value]="svc.kpisPmp().valorTotal"
-            [delta]="svc.kpisPmp().variacaoValor"
-            [isCurrency]="true"
-          />
-        </div>
-
-        <!-- Agrupamentos PMP -->
-        <div class="agrupamentos-row">
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <h2 class="card-title">PMP por Fornecedor</h2>
-                <p class="card-sub">Top 10 maiores valores</p>
-              </div>
-            </div>
-            <div class="agrupamento-list">
-              <div *ngFor="let item of svc.agrupamentoPmpFornecedor()" class="agrupamento-item">
-                <div class="agrupamento-info">
-                  <div class="agrupamento-nome">{{ item.label }}</div>
-                  <div class="agrupamento-stats">
-                    <span class="stat">{{ item.pmpDias }} dias</span>
-                    <span class="stat">{{ item.qtdTitulos }} títulos</span>
-                  </div>
-                </div>
-                <div class="agrupamento-valor">
-                  <div class="valor">{{ item.valorTotal | currency }}</div>
-                  <div class="percentual">{{ item.percentualTotal.toFixed(1) }}%</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tabela PMP -->
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <h2 class="card-title">Títulos — PMP</h2>
-              <p class="card-sub">
-                {{ svc.titulosPmp().length }} títulos
-              </p>
-            </div>
-          </div>
-
-          <app-data-table-pmp [List]="svc.titulosPmp()" />
-        </div>
-      </ng-container>
-
-      <!-- ABA PMR -->
-      <ng-container *ngIf="abaAtiva === 'pmr'">
         <!-- KPIs PMR -->
         <div class="kpi-grid">
           <app-kpi-card
@@ -295,7 +189,6 @@ import { HelpItem } from '../../../../shared/models/config.models';
 
           <app-data-table-pmr [List]="svc.titulosPmr()" />
         </div>
-      </ng-container>
     </div>
   `,
   styles: [`
@@ -905,18 +798,12 @@ import { HelpItem } from '../../../../shared/models/config.models';
     }
   `],
 })
-export class PmpPmrComponent implements OnInit {
-  protected readonly svc = inject(PmpPmrService);
-  abaAtiva: 'pmp' | 'pmr' = 'pmp';
+export class PmrComponent implements OnInit {
+  protected readonly svc = inject(PmrService);
 
   readonly ajudaAberta = signal(false);
 
   readonly ajuda: HelpItem[] = [
-    {
-      titulo: 'PMP (Prazo Médio de Pagamento)',
-      descricao:
-        'Representa o tempo médio, em dias, que a empresa leva para pagar seus fornecedores. Quanto maior o PMP, maior é o prazo utilizado para realizar os pagamentos. Calculo soma de todos os títulos pagar (data_baixa - data_emissao) / Quantidade de títulos pagar'
-    },
     {
       titulo: 'PMR (Prazo Médio de Recebimento)',
       descricao:
@@ -936,11 +823,6 @@ export class PmpPmrComponent implements OnInit {
       titulo: 'Valor Total',
       descricao:
         'Soma de todos os títulos considerados no período selecionado.'
-    },
-    {
-      titulo: 'PMP por Fornecedor',
-      descricao:
-        'Ranking dos fornecedores com maior volume financeiro. Também apresenta o prazo médio de pagamento e a quantidade de títulos de cada fornecedor.'
     },
     {
       titulo: 'PMR por Cliente',
