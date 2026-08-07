@@ -45,7 +45,7 @@ import { InadimplenciaColumnProvider } from '../../../../shared/components/table
 
         <div class="header-right">
           <app-multi-select-filter
-            label="Pessoa"
+            label="Clientes"
             icon="🙋"
             [opcoes]="svc.opcoesPessoa()"
             [selecionados]="svc.filtroPessoas()"

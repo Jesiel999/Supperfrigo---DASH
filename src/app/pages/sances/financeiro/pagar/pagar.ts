@@ -37,7 +37,7 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
 
         <div class="header-right">
           <app-multi-select-filter
-            label="Pessoa"
+            label="Fornecedor"
             icon="🙋"
             [opcoes]="svc.opcoesPessoa()"
             [selecionados]="svc.filtroPessoas()"
@@ -90,20 +90,20 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
         <div class="kpi-grid">
           <app-kpi-card
             label="Valor a Pagar" icon="🔴" variant="danger"
-            [value]="svc.kpiTxPagamento().valorEsperado"
-            [delta]="svc.kpiTxPagamento().variacaoEsperado"
+            [value]="svc.kpiPagar().valorEsperado"
+            [delta]="svc.kpiPagar().variacaoEsperado"
             [isCurrency]="true"
           />
           <app-kpi-card-invert
             label="Valor Pago" icon="✅" variant="success"
-            [value]="svc.kpiTxPagamento().valorRealizado"
-            [delta]="svc.kpiTxPagamento().variacaoRealizado"
+            [value]="svc.kpiPagar().valorRealizado"
+            [delta]="svc.kpiPagar().variacaoRealizado"
             [isCurrency]="true"
           />
           <app-kpi-card
             label="Diferença" icon="💵" variant="info"
-            [value]="svc.kpiTxPagamento().valorDiferenca"
-            [delta]="svc.kpiTxPagamento().variacaoDiferenca"
+            [value]="svc.kpiPagar().valorDiferenca"
+            [delta]="svc.kpiPagar().variacaoDiferenca"
             [isCurrency]="true"
           />
         </div>
@@ -113,7 +113,7 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
             <div class="card-header">
               <div>
                 <h2 class="card-title">Rank por Empresa</h2>
-                <p class="card-sub">Valor esperado a pagar</p>
+                <p class="card-sub">Valor Pago por Empresa</p>
               </div>
             </div>
             <app-top-devedores-bar [data]="svc.rankingPagamentoParaGrafico()" />

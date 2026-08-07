@@ -28,22 +28,22 @@ export class ReceberService {
     }
     private getUltimoDiaMes(): string {
         const hoje = new Date();
-        return new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
+        return new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
     }
 
     readonly dataInicio = signal<string>(this.getPrimeiroDiaMes());
     readonly dataFim = signal<string>(this.getUltimoDiaMes());
     readonly periodo    = signal<string>('');
 
-    readonly filtroStatusTxRecebimento = signal<string>('todos');
+    readonly filtroStatusReceber = signal<string>('todos');
     readonly buscaRecebimento = signal<string>('');
 
     readonly carregandoTaxaRecebimento = signal<boolean>(false);
 
     readonly filtroPessoas = signal<Set<number>>(new Set());
 
-    private readonly _txRecebimentoBruto = signal<TaxaApiItem[]>([]);
-    private readonly _txRecebimentoBrutoAnt = signal<TaxaApiItem[]>([]);
+    private readonly _txReceberBruto = signal<TaxaApiItem[]>([]);
+    private readonly _txReceberBrutoAnt = signal<TaxaApiItem[]>([]);
 
     private readonly _diasPeriodo = signal<string[]>([]);
     private readonly _fmtInicio = signal<string>('');
@@ -70,7 +70,7 @@ export class ReceberService {
     }
 
     readonly ultimaAtualizacao = computed(() => {
-        const lista = this._txRecebimentoBruto();
+        const lista = this._txReceberBruto();
         if (!lista.length) return null;
 
         return lista
@@ -91,12 +91,12 @@ export class ReceberService {
 
     private readonly _recebimentoBaseEmpresa = computed(() => {
       const empresas = this.empresaFilter.selecionadas();
-      const brutos = this._txRecebimentoBruto();
+      const brutos = this._txReceberBruto();
       return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
     });
     private readonly _recebimentoBaseEmpresaAnt = computed(() => {
       const empresas = this.empresaFilter.selecionadas();
-      const brutos = this._txRecebimentoBrutoAnt();
+      const brutos = this._txReceberBrutoAnt();
       return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
     });
 
@@ -108,7 +108,7 @@ export class ReceberService {
     );
 
     readonly recebimentoFiltrado = computed(() => {
-      const status = this.filtroStatusTxRecebimento();
+      const status = this.filtroStatusReceber();
       const base = this._recebimentoBase();
       return status === 'todos' ? base : base.filter(c => c.status_financeiro === status);
     });
@@ -152,7 +152,7 @@ export class ReceberService {
         };
     }
 
-    readonly kpiTxRecebimento = computed((): KpiTaxaValores =>
+    readonly kpiReceber = computed((): KpiTaxaValores =>
         this.kpis(this.recebimentoFiltrado(), this._recebimentoBaseAnt())
     );
 
@@ -169,11 +169,11 @@ export class ReceberService {
         const map = new Map<string, { esperado: number; realizado: number }>();
 
         lista.forEach(c => {
-        const key = this._nomeGrupoEmpresa(c.nome_empresa);  
-        if (!map.has(key)) map.set(key, { esperado: 0, realizado: 0 });
-        const item = map.get(key)!;
-        item.esperado  += c.valor_total;
-        item.realizado += this._valorRealizado(c);
+          const key = this._nomeGrupoEmpresa(c.nome_empresa);  
+          if (!map.has(key)) map.set(key, { esperado: 0, realizado: 0 });
+          const item = map.get(key)!;
+          item.esperado  += c.valor_total;
+          item.realizado += this._valorRealizado(c);
         });
 
         return Array.from(map.entries())
@@ -189,18 +189,20 @@ export class ReceberService {
 
     readonly rankingRecebimentoPorEmpresa = computed(() => this._rankingPorEmpresa(this.recebimentoFiltrado()));
 
-    // ─── Adaptadores p/ reaproveitar TopDevedoresBarComponent ───
-    readonly rankingRecebimentoParaGrafico = computed((): MaioresDevedores[] =>
-        this.rankingRecebimentoPorEmpresa().map(r => ({
+    readonly rankingRecebimentoParaGrafico = computed((): MaioresDevedores[] => {
+      const ranking = this.rankingRecebimentoPorEmpresa();
+      const totalRealizado = ranking.reduce((s, r) => s + r.valorRealizado, 0) || 1;
+  
+      return ranking.map(r => ({
         nome: r.nome,
-        valor: r.valorEsperado,
-        percentual: r.percentualDoTotal,
+        valor: r.valorRealizado,
+        percentual: (r.valorRealizado / totalRealizado) * 100,
         diasAtrasoMedio: Math.round(r.taxaRealizacao),
-        }))
-    );
+      }));
+    });
 
     readonly comparativoRecebimento = computed((): MaioresDevedores[] => {
-        const kpi = this.kpiTxRecebimento();
+        const kpi = this.kpiReceber();
         return [
         { nome: 'A Receber', valor: kpi.valorEsperado, percentual: 100, diasAtrasoMedio: 0 },
         { nome: 'Recebido', valor: kpi.valorRealizado, percentual: kpi.valorEsperado > 0 ? (kpi.valorRealizado / kpi.valorEsperado) * 100 : 0, diasAtrasoMedio: 0 },
@@ -338,12 +340,12 @@ export class ReceberService {
         this.carregandoTaxaRecebimento.set(true);
     
         forkJoin({
-          recebimentoAtual:    this.api.getTxRecebimento(fmt(dtInicioAtual), fmt(dtFimAtual)),
-          recebimentoAnterior: this.api.getTxRecebimento(fmt(inicioAnterior), fmt(fimAnterior)),
+          recebimentoAtual:    this.api.getReceber(fmt(dtInicioAtual), fmt(dtFimAtual)),
+          recebimentoAnterior: this.api.getReceber(fmt(inicioAnterior), fmt(fimAnterior)),
         }).subscribe({
           next: ({ recebimentoAtual, recebimentoAnterior}) => {
-            this._txRecebimentoBruto.set(recebimentoAtual.data ?? []);
-            this._txRecebimentoBrutoAnt.set(recebimentoAnterior.data ?? []);
+            this._txReceberBruto.set(recebimentoAtual.data ?? []);
+            this._txReceberBrutoAnt.set(recebimentoAnterior.data ?? []);
     
             this.carregandoTaxaRecebimento.set(false);
           },
@@ -356,7 +358,7 @@ export class ReceberService {
     
       // ─── Actions ────────────────────────────────────────────────
       setBuscaRecebimento(v: string) { this.buscaRecebimento.set(v); }
-      setFiltroStatusTxRecebimento(v: string) { this.filtroStatusTxRecebimento.set(v); }
+      setFiltroStatusReceber(v: string) { this.filtroStatusReceber.set(v); }
       
       togglePessoa(id: number): void {
         const nova = new Set(this.filtroPessoas());

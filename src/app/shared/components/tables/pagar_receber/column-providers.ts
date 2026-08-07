@@ -77,6 +77,6 @@ export class TaxaPagamentoColumnProvider implements TableColumnProvider<TaxaApiI
   }
 
   getNomeArquivoExport(): string {
-    return 'taxa_pagamento';
+    return 'excel';
   }
 }

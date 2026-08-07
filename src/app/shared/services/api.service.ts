@@ -4,11 +4,10 @@ import { environment } from '../../../environments/environment';
 import {
   ApiResponse,
   InadimplenciaApiItem,
-  EnvioCobrancaPayload,
   PmpApiItem,
   PmrApiItem,
-  RespostaEnvio,
 } from '../models/financeiro.models';
+import { EnvioCobrancaPayload, RespostaEnvio } from '../models/cobranca.models';
 import { TaxaApiItem } from '../models/taxa.models';
 import {
   Usuario,
@@ -206,7 +205,7 @@ export class ApiService {
     );
   }
 
-  getTxRecebimento(dataInicio?: string, dataFim?: string) {
+  getReceber(dataInicio?: string, dataFim?: string) {
     let params = new HttpParams();
 
     if(dataInicio) {
@@ -218,12 +217,12 @@ export class ApiService {
     }
 
     return this.http.get<ApiResponse<TaxaApiItem>>(
-      `${this.base}/financeiro/taxarecebimento`,
+      `${this.base}/financeiro/receber`,
       { params }
     );
   }
 
-  getTxPagamento(dataInicio?: string, dataFim?: string) {
+  getPagar(dataInicio?: string, dataFim?: string) {
     let params = new HttpParams();
 
     if(dataInicio) {
@@ -235,7 +234,7 @@ export class ApiService {
     }
 
     return this.http.get<ApiResponse<TaxaApiItem>>(
-      `${this.base}/financeiro/taxapagamento`,
+      `${this.base}/financeiro/pagar`,
       { params }
     );
   }

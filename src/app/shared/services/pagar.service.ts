@@ -37,16 +37,16 @@ export class PagarService {
   readonly periodo    = signal<string>('');
 
   // ─── Filtros locais ─────────────────────────────────────────
-  readonly filtroStatusTxPagamento   = signal<string>('todos');
+  readonly filtroStatusPagar   = signal<string>('todos');
   readonly buscaPagamento   = signal<string>('');
 
   readonly carregandoTaxaPagamento   = signal<boolean>(false);
-  
+
   readonly filtroPessoas = signal<Set<number>>(new Set());
 
   // ─── Dados brutos (nunca filtrados) ────────────────────────
-  private readonly _txPagamentoBruto      = signal<TaxaApiItem[]>([]);
-  private readonly _txPagamentoBrutoAnt   = signal<TaxaApiItem[]>([]);
+  private readonly _txPagarBruto      = signal<TaxaApiItem[]>([]);
+  private readonly _txPagarBrutoAnt   = signal<TaxaApiItem[]>([]);
 
   private readonly _diasPeriodo = signal<string[]>([]);
   private readonly _fmtInicio   = signal<string>('');
@@ -73,7 +73,7 @@ export class PagarService {
   }
 
   readonly ultimaAtualizacao = computed(() => {
-      const lista = this._txPagamentoBruto();
+      const lista = this._txPagarBruto();
       if (!lista.length) return null;
 
       return lista
@@ -94,12 +94,12 @@ export class PagarService {
 
   private readonly _pagamentoBaseEmpresa = computed(() => {
     const empresas = this.empresaFilter.selecionadas();
-    const brutos = this._txPagamentoBruto();
+    const brutos = this._txPagarBruto();
     return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
   });
   private readonly _pagamentoBaseEmpresaAnt = computed(() => {
     const empresas = this.empresaFilter.selecionadas();
-    const brutos = this._txPagamentoBrutoAnt();
+    const brutos = this._txPagarBrutoAnt();
     return empresas.size === 0 ? brutos : brutos.filter(c => empresas.has(Number(c.id_empresa)));
   });
 
@@ -111,7 +111,7 @@ export class PagarService {
   );
 
   readonly pagamentoFiltrado = computed(() => {
-    const status = this.filtroStatusTxPagamento();
+    const status = this.filtroStatusPagar();
     const base = this._pagamentoBase();
     return status === 'todos' ? base : base.filter(c => c.status_financeiro === status);
   });
@@ -156,10 +156,10 @@ export class PagarService {
     };
   }
 
-  readonly kpiTxPagamento = computed((): KpiTaxaValores =>
+  readonly kpiPagar = computed((): KpiTaxaValores =>
     this.kpis(this.pagamentoFiltrado(), this._pagamentoBaseAnt())
   );
-  
+
   private _nomeGrupoEmpresa(nome: string | null | undefined): string {
     if (!nome) return 'Sem empresa';
     const primeiro = nome.trim().split(/\s+/)[0];
@@ -169,15 +169,15 @@ export class PagarService {
   private _rankingPorEmpresa(lista: TaxaApiItem[]): RankingTaxaEmpresa[] {
     const totalEsperado = lista.reduce((s, c) => s + c.valor_total, 0) || 1;
     const map = new Map<string, { esperado: number; realizado: number }>();
-
+ 
     lista.forEach(c => {
-      const key = this._nomeGrupoEmpresa(c.nome_empresa);   
+      const key = this._nomeGrupoEmpresa(c.nome_empresa);
       if (!map.has(key)) map.set(key, { esperado: 0, realizado: 0 });
       const item = map.get(key)!;
-      item.esperado  += c.valor_total;
+      item.esperado += c.valor_total;
       item.realizado += this._valorRealizado(c);
     });
-
+ 
     return Array.from(map.entries())
       .map(([nome, v]) => ({
         nome,
@@ -186,22 +186,25 @@ export class PagarService {
         taxaRealizacao: v.esperado > 0 ? (v.realizado / v.esperado) * 100 : 0,
         percentualDoTotal: (v.esperado / totalEsperado) * 100,
       }))
-      .sort((a, b) => b.valorEsperado - a.valorEsperado);
+      .sort((a, b) => b.valorRealizado - a.valorRealizado);
   }
-
+ 
   readonly rankingPagamentoPorEmpresa   = computed(() => this._rankingPorEmpresa(this.pagamentoFiltrado()));
-
-  readonly rankingPagamentoParaGrafico = computed((): MaioresDevedores[] =>
-    this.rankingPagamentoPorEmpresa().map(r => ({
+ 
+  readonly rankingPagamentoParaGrafico = computed((): MaioresDevedores[] => {
+    const ranking = this.rankingPagamentoPorEmpresa();
+    const totalRealizado = ranking.reduce((s, r) => s + r.valorRealizado, 0) || 1;
+ 
+    return ranking.map(r => ({
       nome: r.nome,
-      valor: r.valorEsperado,
-      percentual: r.percentualDoTotal,
+      valor: r.valorRealizado,
+      percentual: (r.valorRealizado / totalRealizado) * 100,
       diasAtrasoMedio: Math.round(r.taxaRealizacao),
-    }))
-  );
+    }));
+  });
 
   readonly comparativoPagamento = computed((): MaioresDevedores[] => {
-    const kpi = this.kpiTxPagamento();
+    const kpi = this.kpiPagar();
     return [
       { nome: 'A Pagar', valor: kpi.valorEsperado, percentual: 100, diasAtrasoMedio: 0 },
       { nome: 'Pago', valor: kpi.valorRealizado, percentual: kpi.valorEsperado > 0 ? (kpi.valorRealizado / kpi.valorEsperado) * 100 : 0, diasAtrasoMedio: 0 },
@@ -267,7 +270,7 @@ export class PagarService {
   );
 
   // ─── Séries prontas para o LineChartComponent ───────────────
-  
+
 
   readonly seriesPagamento = computed((): Serie[] => {
     const linhas = this.linhasPagamento();
@@ -339,12 +342,12 @@ export class PagarService {
     this.carregandoTaxaPagamento.set(true);
 
     forkJoin({
-      pagamentoAtual:      this.api.getTxPagamento(fmt(dtInicioAtual), fmt(dtFimAtual)),
-      pagamentoAnterior:   this.api.getTxPagamento(fmt(inicioAnterior), fmt(fimAnterior)),
+      pagamentoAtual:      this.api.getPagar(fmt(dtInicioAtual), fmt(dtFimAtual)),
+      pagamentoAnterior:   this.api.getPagar(fmt(inicioAnterior), fmt(fimAnterior)),
     }).subscribe({
       next: ({ pagamentoAtual, pagamentoAnterior }) => {
-        this._txPagamentoBruto.set(pagamentoAtual.data ?? []);
-        this._txPagamentoBrutoAnt.set(pagamentoAnterior.data ?? []);
+        this._txPagarBruto.set(pagamentoAtual.data ?? []);
+        this._txPagarBrutoAnt.set(pagamentoAnterior.data ?? []);
 
         this.carregandoTaxaPagamento.set(false);
       },
@@ -357,7 +360,7 @@ export class PagarService {
 
   // ─── Actions ────────────────────────────────────────────────
   setBuscaPagamento(v: string)   { this.buscaPagamento.set(v); }
-  setFiltroStatusTxPagamento(v: string)   { this.filtroStatusTxPagamento.set(v); }
+  setFiltroStatusPagar(v: string)   { this.filtroStatusPagar.set(v); }
 
   togglePessoa(id: number): void {
     const nova = new Set(this.filtroPessoas());

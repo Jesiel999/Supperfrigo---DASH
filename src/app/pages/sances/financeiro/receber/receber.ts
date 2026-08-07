@@ -37,7 +37,7 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
 
         <div class="header-right">
           <app-multi-select-filter
-            label="Pessoa"
+            label="Clientes"
             icon="🙋"
             [opcoes]="svc.opcoesPessoa()"
             [selecionados]="svc.filtroPessoas()"
@@ -89,20 +89,20 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
         <div class="kpi-grid">
           <app-kpi-card
             label="Valor a Receber" icon="🔴" variant="danger"
-            [value]="svc.kpiTxRecebimento().valorEsperado"
-            [delta]="svc.kpiTxRecebimento().variacaoEsperado"
+            [value]="svc.kpiReceber().valorEsperado"
+            [delta]="svc.kpiReceber().variacaoEsperado"
             [isCurrency]="true"
           />
           <app-kpi-card-invert
             label="Valor Recebido" icon="✅" variant="success"
-            [value]="svc.kpiTxRecebimento().valorRealizado"
-            [delta]="svc.kpiTxRecebimento().variacaoRealizado"
+            [value]="svc.kpiReceber().valorRealizado"
+            [delta]="svc.kpiReceber().variacaoRealizado"
             [isCurrency]="true"
           />
           <app-kpi-card
             label="Diferença" icon="💵" variant="info"
-            [value]="svc.kpiTxRecebimento().valorDiferenca"
-            [delta]="svc.kpiTxRecebimento().variacaoDiferenca"
+            [value]="svc.kpiReceber().valorDiferenca"
+            [delta]="svc.kpiReceber().variacaoDiferenca"
             [isCurrency]="true"
           />
         </div>
@@ -112,7 +112,7 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
             <div class="card-header">
               <div>
                 <h2 class="card-title">Rank por Empresa</h2>
-                <p class="card-sub">Valor esperado a receber</p>
+                <p class="card-sub">Valor Recebido por Empresa</p>
               </div>
             </div>
             <app-top-devedores-bar [data]="svc.rankingRecebimentoParaGrafico()" />
