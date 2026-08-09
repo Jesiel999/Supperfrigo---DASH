@@ -13,4 +13,4 @@ export interface KpiCobranca {
   whatsappEnviados: number; emailsEnviados: number; aguardandoResposta: number;
 }
 export interface EnvioCobrancaPayload { id_pessoa: number; canal: CanalCobranca; mensagem?: string; }
-export interface RespostaEnvio { status: 'enviado' | 'falhou'; canal: CanalCobranca; mensagem: string; }
+export interface RespostaEnvio { status: 'enviado' | 'falhou'; canal: CanalCobranca; mensagem: string; } 

@@ -17,7 +17,8 @@ export type KpiVariant = 'danger' | 'warning' | 'info' | 'success';
         <div class="kpi-icon">{{ icon() }}</div>
       </div>
 
-      <div class="kpi-value">
+      <div class="kpi-value"
+      [style.color]="valueColor() || null">
         @if (isCurrency()) {
           {{ value() | currency:'BRL':'symbol':'1.0-0' }}
         } @else {
@@ -96,6 +97,7 @@ export class KpiCardInvertComponent {
   readonly variant    = input.required<KpiVariant>();
   readonly delta      = input.required<number>();
   readonly isCurrency = input<boolean>(true);
+  readonly valueColor = input<string | null>(null);
 
   protected readonly Math = Math;
 

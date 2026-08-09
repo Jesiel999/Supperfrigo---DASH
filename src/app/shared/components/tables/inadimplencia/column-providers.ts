@@ -2,6 +2,7 @@ import { ColDef } from 'ag-grid-community';
 import { TableColumnProvider } from '../table-column-provider';
 import { CellFormatters } from '../cell-formatters';
 import { Pessoa } from '../../../models/financeiro.models';
+import { DashboardColors } from '../../../config/dashboard-colors';
 
 export class InadimplenciaColumnProvider implements TableColumnProvider<Pessoa> {
   getColunas(): ColDef<Pessoa>[] {
@@ -18,7 +19,7 @@ export class InadimplenciaColumnProvider implements TableColumnProvider<Pessoa> 
       {
         field: 'valor_total', headerName: 'Valor', width: 150, type: 'numericColumn',
         valueFormatter: CellFormatters.currencyValueFormatter<Pessoa>(),
-        cellStyle: CellFormatters.currencyCellStyle('#f43f5e'),
+        cellStyle: CellFormatters.currencyCellStyle(DashboardColors.inadimplencia.valor),
       },
       {
         field: 'data_vencimento', headerName: 'Vencimento', width: 120, sort: 'asc',
@@ -27,14 +28,18 @@ export class InadimplenciaColumnProvider implements TableColumnProvider<Pessoa> 
       },
       {
         field: 'dias_atraso', headerName: 'Dias Atraso', width: 120, type: 'numericColumn',
-        cellStyle: CellFormatters.diasAtrasoCellStyle<Pessoa>(),
+        cellStyle: CellFormatters.currencyCellStyle(DashboardColors.inadimplencia.diasAtraso),
       },
       {
-        field: 'status_financeiro', headerName: 'Status', width: 130,
-        cellRenderer: CellFormatters.statusBadgeCellRenderer<Pessoa>({
-          VENCIDO: 'background:rgba(244,63,94,.15);color:#f43f5e;border:1px solid rgba(244,63,94,.3)',
-          PAGO: 'background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.2)',
-        }),
+        field: 'status_financeiro',
+        headerName: 'Status',
+        width: 130,
+
+        cellRenderer:
+          CellFormatters.statusBadgeCellRenderer({
+            VENCIDO:
+              'background:rgba(244,63,94,.15);color:#f43f5e;border:1px solid rgba(244,63,94,.3)',
+          }),
       },
     ];
   }

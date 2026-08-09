@@ -272,7 +272,7 @@ export class ReceberService {
       readonly seriesRecebimento = computed((): Serie[] => {
         const linhas = this.linhasRecebimento();
         return [
-          { id: 'esperado', label: 'A Receber', cor: '#f43f5e', formatador: 'currency', pontos: linhas.esperado },
+          { id: 'esperado', label: 'A Receber', cor: '#38BDF8', formatador: 'currency', pontos: linhas.esperado },
           { id: 'realizado', label: 'Recebido', cor: '#34d399', formatador: 'currency', pontos: linhas.realizado },
         ];
       });

@@ -2,6 +2,7 @@ import { ColDef } from 'ag-grid-community';
 import { TableColumnProvider } from '../table-column-provider';
 import { CellFormatters } from '../cell-formatters';
 import { TaxaApiItem } from '../../../models/taxa.models';
+import { DashboardColors } from '../../../config/dashboard-colors';
 
 export class TaxaRecebimentoColumnProvider implements TableColumnProvider<TaxaApiItem> {
   getColunas(): ColDef<TaxaApiItem>[] {
@@ -16,7 +17,7 @@ export class TaxaRecebimentoColumnProvider implements TableColumnProvider<TaxaAp
       {
         field: 'valor_total', headerName: 'Valor', width: 150, type: 'numericColumn',
         valueFormatter: CellFormatters.currencyValueFormatter<TaxaApiItem>(),
-        cellStyle: CellFormatters.currencyCellStyle('#34d399'),
+        cellStyle: CellFormatters.currencyCellStyle(DashboardColors.receber.valor),
       },
       {
         field: 'data_vencimento', headerName: 'Vencimento', width: 120, sort: 'asc',
@@ -38,7 +39,7 @@ export class TaxaRecebimentoColumnProvider implements TableColumnProvider<TaxaAp
   }
 
   getNomeArquivoExport(): string {
-    return 'taxa_recebimento';
+    return 'receber';
   }
 }
 
@@ -55,7 +56,7 @@ export class TaxaPagamentoColumnProvider implements TableColumnProvider<TaxaApiI
       {
         field: 'valor_total', headerName: 'Valor', width: 150, type: 'numericColumn',
         valueFormatter: CellFormatters.currencyValueFormatter<TaxaApiItem>(),
-        cellStyle: CellFormatters.currencyCellStyle('#f43f5e'),
+        cellStyle: CellFormatters.currencyCellStyle(DashboardColors.pagar.valor),
       },
       {
         field: 'data_vencimento', headerName: 'Vencimento', width: 120, sort: 'asc',
@@ -77,6 +78,6 @@ export class TaxaPagamentoColumnProvider implements TableColumnProvider<TaxaApiI
   }
 
   getNomeArquivoExport(): string {
-    return 'excel';
+    return 'pagar';
   }
 }

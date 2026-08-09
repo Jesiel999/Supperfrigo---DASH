@@ -142,18 +142,20 @@ import { InadimplenciaColumnProvider } from '../../../../shared/components/table
       <div class="kpi-grid">
         <app-kpi-card
           label="Total Inadimplente"
-          icon="🔴"
+          icon="🚨"
           variant="danger"
           [value]="svc.kpis().totalInadimplente"
           [delta]="svc.kpis().variacaoTotal"
+          valueColor="#f43F5E"
           [isCurrency]="true"
         />
         <app-kpi-card-invert
           label="Quantidade de Títulos"
-          icon="✅"
+          icon="📄"
           variant="success"
           [value]="svc.kpis().qtdTitulosAtual"
           [delta]="svc.kpis().variacaoTitulos"
+          valueColor="#38BDF8"
           [isCurrency]="false"
         />
         <app-kpi-card
@@ -162,6 +164,7 @@ import { InadimplenciaColumnProvider } from '../../../../shared/components/table
           variant="info"
           [value]="svc.kpis().ticketMedio"
           [delta]="svc.kpis().variacaoTicket"
+          valueColor="#38BDF8"
           [isCurrency]="true"
         />
         <app-kpi-card
@@ -170,6 +173,7 @@ import { InadimplenciaColumnProvider } from '../../../../shared/components/table
           variant="warning"
           [value]="svc.kpis().clientesInadimplentes"
           [delta]="svc.kpis().variacaoClientes"
+            valueColor="#38BDF8"
           [isCurrency]="false"
         />
       </div>
@@ -182,7 +186,19 @@ import { InadimplenciaColumnProvider } from '../../../../shared/components/table
               <p class="card-sub">Total inadimplente</p>
             </div>
           </div>
-          <app-top-devedores-bar [data]="svc.valorPorEmpresa()" />
+          <app-top-devedores-bar 
+            [data]="svc.valorPorEmpresa()" 
+            [valueColors]="[
+              '#f43F5E',
+              '#f43F5E'
+            ]"
+            [showDays]="true"
+            [showPercentage]="true"
+            [barColors]="[
+              '#f43F5E',
+              '#f43F5E'
+            ]"
+          />
         </div>
 
         <div class="card donut-card">
@@ -210,7 +226,17 @@ import { InadimplenciaColumnProvider } from '../../../../shared/components/table
               📊 Excel
             </button>
           </div>
-          <app-top-devedores-bar [data]="svc.topDevedores()" />
+          <app-top-devedores-bar 
+            [data]="svc.topDevedores()"
+            [valueColors]="[
+              '#f43F5E'
+            ]"
+            [showDays]="true"
+            [showPercentage]="true"
+            [barColors]="[
+              '#f43F5E'
+            ]"
+          />
         </div>
         
         <div class="card donut-card">
@@ -465,7 +491,7 @@ import { InadimplenciaColumnProvider } from '../../../../shared/components/table
           opacity:1;
       }
   }
-    .page { display: flex; flex-direction: column; gap: 24px; }
+    .page { display: flex; flex-direction: column; gap: 24px; padding: 20px; }
 
     /* ── Header ── */
     .page-header {
@@ -477,7 +503,7 @@ import { InadimplenciaColumnProvider } from '../../../../shared/components/table
       font-weight: 800; letter-spacing: -.5px; line-height: 1.1;
     }
     .page-title span {
-      background: linear-gradient(90deg,#f43f5e,#fb923c);
+      background: linear-gradient(90deg,#f43f5e,#f43f5e);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
     .page-sub { color: var(--muted); font-size: 13px; margin-top: 5px; }
@@ -486,7 +512,6 @@ import { InadimplenciaColumnProvider } from '../../../../shared/components/table
       display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
     }
 
-    /* ── Período picker ── */
     .periodo-picker {
       display: flex; align-items: center; gap: 6px;
     }
@@ -508,21 +533,13 @@ import { InadimplenciaColumnProvider } from '../../../../shared/components/table
     .help-btn{
       width:34px;
       height:34px;
-
       border-radius:50%;
-
       border:1px solid var(--border);
-
       background:rgba(255,255,255,.05);
-
       color:var(--muted);
-
       cursor:pointer;
-
       transition:.2s;
-
       font-weight:700;
-
       font-size:15px;
   }
 

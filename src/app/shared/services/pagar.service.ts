@@ -275,7 +275,7 @@ export class PagarService {
   readonly seriesPagamento = computed((): Serie[] => {
     const linhas = this.linhasPagamento();
     return [
-      { id: 'esperado', label: 'A Pagar', cor: '#f43f5e', formatador: 'currency', pontos: linhas.esperado },
+      { id: 'esperado', label: 'A Pagar', cor: '#FB923C', formatador: 'currency', pontos: linhas.esperado },
       { id: 'realizado', label: 'Pago', cor: '#34d399', formatador: 'currency', pontos: linhas.realizado },
     ];
   });

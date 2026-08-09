@@ -1,4 +1,4 @@
-import { Component, input, computed } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { MaioresDevedores } from '../../models/financeiro.models';
 
 @Component({
@@ -7,52 +7,91 @@ import { MaioresDevedores } from '../../models/financeiro.models';
   imports: [],
   template: `
     <div class="bar-list">
+
       @for (item of data(); track item.nome; let i = $index) {
+
         <div class="bar-row">
+
           <div class="bar-label">
             <span class="rank">#{{ i + 1 }}</span>
-            <span class="nome" [title]="item.nome">{{ item.nome }}</span>
+
+            <span
+              class="nome"
+              [title]="item.nome">
+              {{ item.nome }}
+            </span>
           </div>
+
           <div class="bar-track">
+
             <div
               class="bar-fill"
               [style.width.%]="item.percentual"
-              [style.opacity]="1 - i * 0.07"
+              [style.background]="getBarColor(i)"
             ></div>
+
           </div>
+
           <div class="bar-values">
-            <span class="valor">{{ formatarValor(item.valor) }}</span>
-            <span class="qtd">{{ item.diasAtrasoMedio }} Dias</span>
-            <span class="pct">{{ item.percentual.toFixed(1) }}%</span>
+
+            <span
+              class="valor"
+              [style.color]="getValueColor(i)">
+              {{ formatarValor(item.valor) }}
+            </span>
+
+            @if (showDays()) {
+              <span class="qtd">
+                {{ item.diasAtrasoMedio }} Dias
+              </span>
+            }
+
+            @if (showPercentage()) {
+              <span class="pct">
+                {{ item.percentual.toFixed(1) }}%
+              </span>
+            }
+
           </div>
+
         </div>
+
       } @empty {
-        <div class="empty">Sem dados.</div>
+
+        <div class="empty">
+          Sem dados.
+        </div>
+
       }
+
     </div>
   `,
+
   styles: [`
     .bar-list {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-height: 350px; 
+      max-height: 350px;
       overflow-y: auto;
       padding-right: 6px;
     }
-    
+
     .bar-row {
       display: grid;
       grid-template-columns:
         minmax(120px, 180px)
         minmax(80px, 1fr)
         minmax(120px, auto);
+
       align-items: center;
       gap: 10px;
     }
 
     .bar-label {
-      display: flex; align-items: center; gap: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
       min-width: 0;
     }
 
@@ -81,8 +120,9 @@ import { MaioresDevedores } from '../../models/financeiro.models';
     .bar-fill {
       height: 100%;
       border-radius: 4px;
-      background: linear-gradient(90deg, #f43f5e, #fb923c);
-      transition: width .4s ease;
+      transition:
+        width .4s ease,
+        background .3s ease;
     }
 
     .bar-values {
@@ -95,7 +135,6 @@ import { MaioresDevedores } from '../../models/financeiro.models';
     .valor {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      color: #f43f5e;
       font-weight: 600;
       white-space: nowrap;
     }
@@ -106,6 +145,7 @@ import { MaioresDevedores } from '../../models/financeiro.models';
       color: var(--muted, #64748b);
       min-width: 42px;
       text-align: right;
+      white-space: nowrap;
     }
 
     .pct {
@@ -114,6 +154,7 @@ import { MaioresDevedores } from '../../models/financeiro.models';
       color: var(--muted, #64748b);
       min-width: 36px;
       text-align: right;
+      white-space: nowrap;
     }
 
     .empty {
@@ -125,10 +166,43 @@ import { MaioresDevedores } from '../../models/financeiro.models';
   `],
 })
 export class TopDevedoresBarComponent {
-  readonly data = input.required<MaioresDevedores[]>();
+
+  readonly data =
+    input.required<MaioresDevedores[]>();
+
+  readonly valueColors =
+    input<string[]>([]);
+
+  readonly showDays =
+    input<boolean>(true);
+
+  readonly showPercentage =
+    input<boolean>(true);
+
+  readonly barColors =
+    input<string[]>([]);
+
+  protected getBarColor(index: number): string {
+    const colors = this.barColors();
+
+    return colors[index % colors.length];
+  }
+
+  protected getValueColor(index: number): string {
+    const colors = this.valueColors();
+
+    return colors[index % colors.length];
+  }
 
   protected formatarValor(v: number): string {
-    if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`;
-    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    if (v >= 1_000_000) {
+      return `R$ ${(v / 1_000_000).toFixed(1)}M`;
+    }
+
+    return v.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
   }
 }

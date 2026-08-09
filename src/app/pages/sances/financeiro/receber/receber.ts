@@ -65,7 +65,14 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
                   <div class="help-body">
                     @for (item of ajuda; track item.titulo) {
                       <div class="help-card">
-                        <div class="help-icon">ℹ️</div>
+                         <div class="help-icon">
+                          @switch (item.titulo) {
+                              @case ("Valor a Receber/Pagar") { 💸 }
+                              @case ("Valor Recebido/Pago") { ✅ }
+                              @case ("Diferença") { 📊 }
+                              @case ("Taxa") { 📈 }
+                              @default { ℹ️ }
+                          }</div>
                         <div>
                           <h4>{{ item.titulo }}</h4>
                           <p>{{ item.descricao }}</p>
@@ -88,21 +95,24 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
       </div>
         <div class="kpi-grid">
           <app-kpi-card
-            label="Valor a Receber" icon="🔴" variant="danger"
+            label="Valor a Receber" icon="💰" variant="danger"
             [value]="svc.kpiReceber().valorEsperado"
             [delta]="svc.kpiReceber().variacaoEsperado"
+            valueColor="#38BDF8"
             [isCurrency]="true"
           />
           <app-kpi-card-invert
             label="Valor Recebido" icon="✅" variant="success"
             [value]="svc.kpiReceber().valorRealizado"
             [delta]="svc.kpiReceber().variacaoRealizado"
+            valueColor="#34D399"
             [isCurrency]="true"
           />
           <app-kpi-card
-            label="Diferença" icon="💵" variant="info"
+            label="Diferença" icon="📊" variant="info"
             [value]="svc.kpiReceber().valorDiferenca"
             [delta]="svc.kpiReceber().variacaoDiferenca"
+            valueColor="#f43F5E"
             [isCurrency]="true"
           />
         </div>
@@ -115,7 +125,19 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
                 <p class="card-sub">Valor Recebido por Empresa</p>
               </div>
             </div>
-            <app-top-devedores-bar [data]="svc.rankingRecebimentoParaGrafico()" />
+            <app-top-devedores-bar
+              [data]="svc.rankingRecebimentoParaGrafico()"
+              [valueColors]="[
+                '#34D399',
+                '#34D399'
+              ]"
+              [showDays]="false"
+              [showPercentage]="true"
+              [barColors]="[
+                '#34D399',
+                '#34D399'
+              ]"
+            />
           </div>
 
           <div class="card">
@@ -129,7 +151,19 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
               <span class="legend-item"><span class="legend-dot" style="background:#f43f5e"></span> A Receber</span>
               <span class="legend-item"><span class="legend-dot" style="background:#34d399"></span> Recebido</span>
             </div>
-            <app-top-devedores-bar [data]="svc.comparativoRecebimento()" />
+            <app-top-devedores-bar 
+              [data]="svc.comparativoRecebimento()"
+              [valueColors]="[
+                '#38BDF8',
+                '#34D399'
+              ]"
+              [showDays]="false"
+              [showPercentage]="true"
+              [barColors]="[
+                '#38BDF8',
+                '#34D399'
+              ]"
+              />
           </div>
         </div>
 
@@ -376,7 +410,7 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
     }
 
     .page-title span {
-      background: linear-gradient(90deg, #056d99ff, #34d399);
+      background: linear-gradient(90deg, #38BDF8, #38BDF8);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }

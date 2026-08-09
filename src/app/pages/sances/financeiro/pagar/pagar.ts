@@ -66,7 +66,15 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
                   <div class="help-body">
                     @for (item of ajuda; track item.titulo) {
                       <div class="help-card">
-                        <div class="help-icon">ℹ️</div>
+                        <div class="help-icon">
+                          @switch (item.titulo) {
+                              @case ("Valor a Receber/Pagar") { 💸 }
+                              @case ("Valor Recebido/Pago") { ✅ }
+                              @case ("Diferença") { 📊 }
+                              @case ("Taxa") { 📈 }
+                              @default { ℹ️ }
+                          }
+                        </div>
                         <div>
                           <h4>{{ item.titulo }}</h4>
                           <p>{{ item.descricao }}</p>
@@ -89,21 +97,24 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
       </div>
         <div class="kpi-grid">
           <app-kpi-card
-            label="Valor a Pagar" icon="🔴" variant="danger"
+            label="Valor a Pagar" icon="💸" variant="danger"
             [value]="svc.kpiPagar().valorEsperado"
             [delta]="svc.kpiPagar().variacaoEsperado"
+            valueColor="#FB923C"
             [isCurrency]="true"
           />
           <app-kpi-card-invert
             label="Valor Pago" icon="✅" variant="success"
             [value]="svc.kpiPagar().valorRealizado"
             [delta]="svc.kpiPagar().variacaoRealizado"
+            valueColor="#34D399"
             [isCurrency]="true"
           />
           <app-kpi-card
-            label="Diferença" icon="💵" variant="info"
+            label="Diferença" icon="📊" variant="info"
             [value]="svc.kpiPagar().valorDiferenca"
             [delta]="svc.kpiPagar().variacaoDiferenca"
+            valueColor="#F43F5E"
             [isCurrency]="true"
           />
         </div>
@@ -116,7 +127,19 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
                 <p class="card-sub">Valor Pago por Empresa</p>
               </div>
             </div>
-            <app-top-devedores-bar [data]="svc.rankingPagamentoParaGrafico()" />
+            <app-top-devedores-bar 
+              [data]="svc.rankingPagamentoParaGrafico()" 
+              [valueColors]="[
+                '#34D399',
+                '#34D399'
+              ]"
+              [showDays]="false"
+              [showPercentage]="true"
+              [barColors]="[
+                '#34D399',
+                '#34D399'
+              ]"
+            />
           </div>
 
           <div class="card">
@@ -130,7 +153,17 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
               <span class="legend-item"><span class="legend-dot" style="background:#f43f5e"></span> A Pagar</span>
               <span class="legend-item"><span class="legend-dot" style="background:#34d399"></span> Pago</span>
             </div>
-            <app-top-devedores-bar [data]="svc.comparativoPagamento()" />
+            <app-top-devedores-bar [data]="svc.comparativoPagamento()"[valueColors]="[
+                '#FB923C',
+                '#34D399'
+              ]"
+              [showDays]="false"
+              [showPercentage]="true"
+              [barColors]="[
+                '#FB923C',
+                '#34D399'
+              ]"
+            />
           </div>
         </div>
 
@@ -350,446 +383,446 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
           opacity:1;
       }
   }
-    .page {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      padding: 20px;
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 20px;
+  }
+
+  /* ── Header ── */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+    margin: 0;
+  }
+
+  .page-title span {
+    background: linear-gradient(90deg, #fb923c, #fb923c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .page-sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 5px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* ── Período picker ── */
+  .periodo-picker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .input-date {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: 'Outfit', sans-serif;
+    padding: 5px 10px;
+    outline: none;
+    color-scheme: dark;
+  }
+
+  .sep {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .btn-filtrar {
+    background: rgba(244, 63, 94, 0.14);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    color: #f43f5e;
+    font-size: 12px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+    padding: 5px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-filtrar:hover {
+    background: rgba(244, 63, 94, 0.25);
+  }
+
+  .help-btn{
+      width:34px;
+      height:34px;
+
+      border-radius:50%;
+
+      border:1px solid var(--border);
+
+      background:rgba(255,255,255,.05);
+
+      color:var(--muted);
+
+      cursor:pointer;
+
+      transition:.2s;
+
+      font-weight:700;
+
+      font-size:15px;
+  }
+
+  .help-btn:hover{
+      background:#f43f5e;
+      color:white;
+      border-color:#f43f5e;
+  }
+
+  .select-mini {
+    background: rgba(255,255,255,.06); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 12px;
+    font-family: 'Outfit', sans-serif; padding: 5px 10px; outline: none;
+    cursor: pointer;
+  }
+
+  /* ── Live badge ── */
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(52, 211, 153, 0.1);
+    border: 1px solid rgba(52, 211, 153, 0.25);
+    color: #34d399;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    background: #34d399;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  /* ── Botão de exportar excel ── */
+  .btn-export-mini {
+    background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.3);
+    color: #f43f5e; font-size: 11px; padding: 5px 12px; border-radius: 6px;
+    cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 500;
+    transition: background .2s;
+  }
+  .btn-export-mini:hover { background: rgba(244,63,94,.22); }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.3);
+    }
+  }
+
+  /* ── Abas ── */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  .tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab:hover {
+    color: var(--text);
+  }
+
+  .tab.active {
+    border-bottom-color: #f43f5e;
+    color: #f43f5e;
+  }
+
+  /* ── KPI Grid ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .agrupamento-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .agrupamento-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .agrupamento-info {
+    flex: 1;
+  }
+
+  .agrupamento-nome {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .agrupamento-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .stat {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .agrupamento-valor {
+    text-align: right;
+  }
+
+  .agrupamento-valor .valor {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .agrupamento-valor .percentual {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+    margin: 0;
+  }
+
+  .card-sub {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 2px;
+    margin: 0;
+  }
+
+  /* ── Table ── */
+  .table-wrapper {
+    overflow-x: auto;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .data-table thead {
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  .data-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+
+  .data-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .data-table tbody tr.pago {
+    opacity: 0.6;
+  }
+
+  .data-table td {
+    padding: 12px;
+    color: var(--text);
+  }
+
+  .cell-nome {
+    font-weight: 500;
+  }
+
+  .cell-valor {
+    font-weight: 600;
+    color: #34d399;
+  }
+
+  .cell-data {
+    color: var(--muted);
+  }
+
+  .cell-dias {
+    text-align: center;
+  }
+
+  .cell-dias .positivo {
+    color: #fb923c;
+    font-weight: 500;
+  }
+
+  .cell-status {
+    text-align: center;
+  }
+
+  .status-pago {
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 10px;
+  }
+
+  .status-aberto {
+    background: rgba(100, 116, 139, 0.2);
+    color: #cbd5e1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 10px;
+  }
+
+  .status-vencido {
+    background: rgba(244, 63, 94, 0.2);
+    color: #f43f5e;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 10px;
+  }
+
+  /* ── Filtros ── */
+  .table-filters {
+    display: flex;
+    gap: 8px;
+  }
+
+  .select-status {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: #34d399;
+    font-size: 12px;
+    font-family: 'Outfit', sans-serif;
+    padding: 6px 10px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* ── Responsivo ── */
+  @media (max-width: 1100px) {
+    .kpi-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
 
-    /* ── Header ── */
+    .agrupamentos-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .kpi-grid {
+      grid-template-columns: 1fr;
+    }
+
     .page-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 10px;
+      flex-direction: column;
     }
 
-    .page-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      line-height: 1.1;
-      margin: 0;
-    }
-
-    .page-title span {
-      background: linear-gradient(90deg, #056d99ff, #34d399);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .page-sub {
-      color: var(--muted);
-      font-size: 13px;
-      margin-top: 5px;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    /* ── Período picker ── */
-    .periodo-picker {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .input-date {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 12px;
-      font-family: 'Outfit', sans-serif;
-      padding: 5px 10px;
-      outline: none;
-      color-scheme: dark;
-    }
-
-    .sep {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .btn-filtrar {
-      background: rgba(244, 63, 94, 0.14);
-      border: 1px solid rgba(244, 63, 94, 0.3);
-      color: #f43f5e;
-      font-size: 12px;
-      font-family: 'Outfit', sans-serif;
-      font-weight: 500;
-      padding: 5px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .btn-filtrar:hover {
-      background: rgba(244, 63, 94, 0.25);
-    }
-
-    .help-btn{
-        width:34px;
-        height:34px;
-
-        border-radius:50%;
-
-        border:1px solid var(--border);
-
-        background:rgba(255,255,255,.05);
-
-        color:var(--muted);
-
-        cursor:pointer;
-
-        transition:.2s;
-
-        font-weight:700;
-
-        font-size:15px;
-    }
-
-    .help-btn:hover{
-        background:#f43f5e;
-        color:white;
-        border-color:#f43f5e;
-    }
-
-    .select-mini {
-      background: rgba(255,255,255,.06); border: 1px solid var(--border);
-      border-radius: 8px; color: var(--text); font-size: 12px;
-      font-family: 'Outfit', sans-serif; padding: 5px 10px; outline: none;
-      cursor: pointer;
-    }
-
-    /* ── Live badge ── */
-    .live-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(52, 211, 153, 0.1);
-      border: 1px solid rgba(52, 211, 153, 0.25);
-      color: #34d399;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 5px 12px;
-      border-radius: 20px;
-    }
-
-    .live-dot {
-      width: 6px;
-      height: 6px;
-      background: #34d399;
-      border-radius: 50%;
-      animation: pulse 1.5s infinite;
-    }
-
-    /* ── Botão de exportar excel ── */
-    .btn-export-mini {
-      background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.3);
-      color: #f43f5e; font-size: 11px; padding: 5px 12px; border-radius: 6px;
-      cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 500;
-      transition: background .2s;
-    }
-    .btn-export-mini:hover { background: rgba(244,63,94,.22); }
-
-    @keyframes pulse {
-      0%,
-      100% {
-        opacity: 1;
-        transform: scale(1);
-      }
-      50% {
-        opacity: 0.5;
-        transform: scale(1.3);
-      }
-    }
-
-    /* ── Abas ── */
     .tabs {
-      display: flex;
-      gap: 8px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 24px;
+      flex-direction: column;
     }
 
     .tab {
-      background: transparent;
-      border: none;
-      border-bottom: 2px solid transparent;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 500;
-      padding: 12px 16px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .tab:hover {
-      color: var(--text);
-    }
-
-    .tab.active {
-      border-bottom-color: #f43f5e;
-      color: #f43f5e;
-    }
-
-    /* ── KPI Grid ── */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-    }
-
-    .agrupamento-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      padding: 8px 12px;
     }
 
     .agrupamento-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.04);
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-
-    .agrupamento-info {
-      flex: 1;
-    }
-
-    .agrupamento-nome {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-
-    .agrupamento-stats {
-      display: flex;
-      gap: 12px;
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .stat {
-      display: inline-flex;
-      gap: 4px;
+      flex-direction: column;
+      align-items: flex-start;
     }
 
     .agrupamento-valor {
-      text-align: right;
-    }
-
-    .agrupamento-valor .valor {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .agrupamento-valor .percentual {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    /* ── Cards ── */
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 22px;
-      margin-bottom: 20px;
-    }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .card-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 15px;
-      letter-spacing: -0.3px;
-      margin: 0;
-    }
-
-    .card-sub {
-      font-size: 11.5px;
-      color: var(--muted);
-      margin-top: 2px;
-      margin: 0;
-    }
-
-    /* ── Table ── */
-    .table-wrapper {
-      overflow-x: auto;
-    }
-
-    .data-table {
+      margin-top: 8px;
       width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
     }
-
-    .data-table thead {
-      background: rgba(255, 255, 255, 0.04);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .data-table th {
-      padding: 12px;
-      text-align: left;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      font-size: 10px;
-      letter-spacing: 0.5px;
-    }
-
-    .data-table tbody tr {
-      border-bottom: 1px solid var(--border);
-      transition: background 0.2s;
-    }
-
-    .data-table tbody tr:hover {
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .data-table tbody tr.pago {
-      opacity: 0.6;
-    }
-
-    .data-table td {
-      padding: 12px;
-      color: var(--text);
-    }
-
-    .cell-nome {
-      font-weight: 500;
-    }
-
-    .cell-valor {
-      font-weight: 600;
-      color: #34d399;
-    }
-
-    .cell-data {
-      color: var(--muted);
-    }
-
-    .cell-dias {
-      text-align: center;
-    }
-
-    .cell-dias .positivo {
-      color: #fb923c;
-      font-weight: 500;
-    }
-
-    .cell-status {
-      text-align: center;
-    }
-
-    .status-pago {
-      background: rgba(52, 211, 153, 0.2);
-      color: #34d399;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: 500;
-      font-size: 10px;
-    }
-
-    .status-aberto {
-      background: rgba(100, 116, 139, 0.2);
-      color: #cbd5e1;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: 500;
-      font-size: 10px;
-    }
-
-    .status-vencido {
-      background: rgba(244, 63, 94, 0.2);
-      color: #f43f5e;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: 500;
-      font-size: 10px;
-    }
-
-    /* ── Filtros ── */
-    .table-filters {
-      display: flex;
-      gap: 8px;
-    }
-
-    .select-status {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: #34d399;
-      font-size: 12px;
-      font-family: 'Outfit', sans-serif;
-      padding: 6px 10px;
-      outline: none;
-      cursor: pointer;
-    }
-
-    /* ── Responsivo ── */
-    @media (max-width: 1100px) {
-      .kpi-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .agrupamentos-row {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .kpi-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .page-header {
-        flex-direction: column;
-      }
-
-      .tabs {
-        flex-direction: column;
-      }
-
-      .tab {
-        padding: 8px 12px;
-      }
-
-      .agrupamento-item {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .agrupamento-valor {
-        margin-top: 8px;
-        width: 100%;
-      }
-    }
+  }
   `],
 })
 export class PagarComponent implements OnInit {
