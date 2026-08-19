@@ -303,7 +303,6 @@ import { InadimplenciaColumnProvider } from '../../../../shared/components/table
         <app-data-table
           [dados]="svc.clientesFiltrados()"
           [colunas]="colunas"
-          [nomeArquivo]="nomeArquivo"
         />
       </div>
     </div>

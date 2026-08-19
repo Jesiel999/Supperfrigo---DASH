@@ -26,9 +26,11 @@ export type KpiVariant = 'danger' | 'warning' | 'info' | 'success';
         }
       </div>
 
-      <div class="kpi-delta" [class]="deltaClass()">
-        {{ deltaPrefix() }} {{ Math.abs(delta()) | number:'1.1-1' }}% vs período anterior
-      </div>
+      @if (showDelta()) {
+        <div class="kpi-delta" [class]="deltaClass()">
+          {{ deltaPrefix() }} {{ Math.abs(delta()) | number:'1.1-1' }}% vs período anterior
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -95,9 +97,11 @@ export class KpiCardInvertComponent {
   readonly value      = input.required<number>();
   readonly icon       = input.required<string>();
   readonly variant    = input.required<KpiVariant>();
-  readonly delta      = input.required<number>();
+  readonly delta      = input<number>(0);
   readonly isCurrency = input<boolean>(true);
   readonly valueColor = input<string | null>(null);
+
+  readonly showDelta = input<boolean>(true);
 
   protected readonly Math = Math;
 

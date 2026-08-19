@@ -194,8 +194,7 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
           <div class="table-wrapper">
             <app-data-table
               [dados]="svc.recebimentoFiltrado()"
-              [colunas]="colunasRecebimento"
-              [nomeArquivo]="nomeArquivoRecebimento"
+              [colunas]="colunasRecebimento"]
             />
           </div>
         </div>

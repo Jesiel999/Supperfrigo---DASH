@@ -16,6 +16,7 @@ import {
   CreateUsuarioRequest,
   UpdateUsuarioRequest,
 } from '../models/usuario.models'
+import { EstoqueApiItem } from '../models/estoque.models';
  
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -201,6 +202,15 @@ export class ApiService {
 
     return this.http.get<ApiResponse<InadimplenciaApiItem>>(
       `${this.base}/financeiro/inadimplencia`,
+      { params }
+    );
+  }
+
+  getEstoque(dataInicio?: string, dataFim?: string) {
+    let params = new HttpParams();
+
+    return this.http.get<ApiResponse<EstoqueApiItem>>(
+      `${this.base}/estoque/atual`,
       { params }
     );
   }

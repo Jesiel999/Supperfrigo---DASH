@@ -1,4 +1,5 @@
-import { ICellRendererParams, ValueFormatterParams, CellClassParams } from 'ag-grid-community';
+import { ICellRendererParams, ValueFormatterParams, CellClassParams, ValueFormatterFunc } from 'ag-grid-community';
+import { ValueFormatterFactory } from '../../formaters/value-formaters';
 
 export class CellFormatters {
   static data(valor: string | null | undefined): string {
@@ -50,5 +51,19 @@ export class CellFormatters {
 
   static nomeDestaqueCellRenderer<T>(): (p: ICellRendererParams<T, string>) => string {
     return (p) => `<span style="font-weight:500;color:#e2e8f0">${p.value ?? ''}</span>`;
+  }
+
+  static numberValueFormatter<T>(): ValueFormatterFunc<T> {
+    return (params: ValueFormatterParams<T>) => {
+      const valor = Number(params.value);
+
+      if (!Number.isFinite(valor)) {
+        return '';
+      }
+
+      return ValueFormatterFactory
+        .get('number')
+        .format(valor);
+    };
   }
 }

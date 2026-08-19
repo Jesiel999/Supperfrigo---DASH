@@ -195,7 +195,6 @@ import { MultiSelectFilterComponent } from '../../../../shared/components/multi-
             <app-data-table
               [dados]="svc.pagamentoFiltrado()"
               [colunas]="colunasPagamento"
-              [nomeArquivo]="nomeArquivoPagamento"
             />
           </div>
         </div>

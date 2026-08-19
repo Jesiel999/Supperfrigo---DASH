@@ -1,9 +1,11 @@
+
 export interface TaxaApiItem {
   codigo: number;
   id_empresa: number; 
   nome_empresa: string; 
   id_pessoa: number;
-  nome_pessoa: string; 
+  nome_pessoa: string;
+  valor_baixa: number;
   valor_total: number; 
   data_vencimento: string;
   dias_atraso: number; 

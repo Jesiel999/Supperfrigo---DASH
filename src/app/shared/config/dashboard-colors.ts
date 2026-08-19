@@ -20,6 +20,10 @@ export const DashboardColors = {
     valor: '#38bdf8',
   },
 
+  estoque: {
+    valor: '#38bdf8',
+  },
+
   tabela: {
     texto: '#e5e7eb',
     muted: '#9ca3af',

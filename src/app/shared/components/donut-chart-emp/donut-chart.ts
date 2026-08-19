@@ -30,7 +30,7 @@ interface DonutSegment extends FaixaAtraso {
           {{ totalTitulos() }}
         </text>
         <text x="60" y="68" text-anchor="middle"
-              font-size="8" fill="#64748b" font-family="Outfit">Títulos</text>
+              font-size="8" fill="#64748b" font-family="Outfit">Total</text>
       </svg>
 
       <div class="donut-legend">

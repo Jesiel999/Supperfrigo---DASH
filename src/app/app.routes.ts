@@ -37,7 +37,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),
     children: [
-      { path: 'movimentacao', canActivate: [permissaoGuard('estoque_movimentacao')], loadComponent: () => import('./pages/sances/estoque/movimentacao/estoque_movimentacao').then(m => m.MovimentacaoComponent) },
+      { path: 'movimentacao', canActivate: [permissaoGuard('estoque_movimentacao')], loadComponent: () => import('./pages/sances/estoque/movimentacao/estoque_movimentacao').then(m => m.EstoqueComponent) },
       { path: '', redirectTo: 'movimentacao', pathMatch: 'full' },
     ],
   },
