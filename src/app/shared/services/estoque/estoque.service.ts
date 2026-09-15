@@ -8,7 +8,7 @@ import {
   ItemEstoque,
   KpiEstoque,
   RankingEstoqueItem,
-  CategoriaFatia,
+  GrupoFatia,
 } from '../../models/estoque.models';
 import { FiltroOpcao } from '../../components/multi-select-filter/pessoa_filter';
 
@@ -25,7 +25,7 @@ export class EstoqueService {
   readonly busca       = signal<string>('');
   readonly carregando  = signal<boolean>(false);
   readonly filtroPecas = signal<Set<number>>(new Set());
-  readonly filtroCategorias = signal<Set<string>>(new Set());
+  readonly filtroGrupo = signal<Set<string>>(new Set());
 
   private readonly _todosBrutos = signal<ItemEstoque[]>([]);
 
@@ -70,10 +70,10 @@ export class EstoqueService {
     return brutos.filter(i => empresas.has(Number(i.id_empresa)));
   });
 
-  private _filtrarPorCategoria(lista: ItemEstoque[]): ItemEstoque[] {
-    const categorias = this.filtroCategorias();
-    if (categorias.size === 0) return lista;
-    return lista.filter(i => categorias.has(i.categoria));
+  private _filtrarPorGrupo(lista: ItemEstoque[]): ItemEstoque[] {
+    const grupo = this.filtroGrupo();
+    if (grupo.size === 0) return lista;
+    return lista.filter(i => grupo.has(i.grupo));
   }
   private _filtrarPorPecas(lista: ItemEstoque[]): ItemEstoque[] {
     const pessoas = this.filtroPecas();
@@ -81,21 +81,20 @@ export class EstoqueService {
     return lista.filter(c => pessoas.has(Number(c.codigo_produto)));
   }
 
-  /** Itens já filtrados por empresa + categoria. Cada linha é o saldo
-   *  ATUAL de um produto numa empresa — não há mais recorte por dia. */
+  /** Itens já filtrados por empresa + Grupo. Cada linha é o saldo **/
   private readonly _itensFiltrados = computed(() => {
     let lista = this._baseEmpresa();
 
-    lista = this._filtrarPorCategoria(lista);
+    lista = this._filtrarPorGrupo(lista);
     lista = this._filtrarPorPecas(lista);
 
     return lista;
   });
 
-  readonly opcoesCategoria = computed((): string[] => {
+  readonly opcoesGrupo = computed((): string[] => {
     const base = this._baseEmpresa();
     const set  = new Set<string>();
-    base.forEach(i => set.add(i.categoria));
+    base.forEach(i => set.add(i.grupo));
     return Array.from(set).sort();
   });
 
@@ -120,14 +119,19 @@ export class EstoqueService {
     );
   });
 
+  // ─── Cálculo do valor total do estoque ──────────────────────────
+  private _valorTotalItem(item: ItemEstoque): number {
+    return Number(item.valor_estoque_custo ?? 0) * Number(item.qtd_estoque ?? 0);
+  }
+
   // ─── KPIs — computed reativo, direto sobre _itensFiltrados ────
   readonly kpis = computed((): KpiEstoque => {
     const atual = this._itensFiltrados();
-
-    const qtdItensAtual   = new Set(atual.map(i => i.codigo_produto)).size;
+    const qtdItensAtual  = atual.reduce((s, i) => s + Number(i.qtd_estoque ?? 0), 0);
     const valorAtual      = atual.reduce((s, i) => s + i.valor_estoque_custo, 0);
     const saldoAtual      = atual.filter(i => i.possui_saldo).length;
-    const qtdFisicaAtual  = atual.reduce((s, i) => s + i.qtd_estoque, 0);
+
+    const qtdFisicaAtual  = qtdItensAtual;
     const custoMedioAtual = qtdFisicaAtual ? valorAtual / qtdFisicaAtual : 0;
 
     return {
@@ -151,7 +155,7 @@ export class EstoqueService {
     const atual = this._itensFiltrados();
 
     const total = atual.reduce(
-      (s, i) => s + i.valor_estoque_custo,
+      (s, i) => s + this._valorTotalItem(i),
       0
     );
 
@@ -162,7 +166,7 @@ export class EstoqueService {
 
       map.set(
         key,
-        (map.get(key) ?? 0) + i.valor_estoque_custo
+        (map.get(key) ?? 0) + this._valorTotalItem(i)
       );
     });
 
@@ -177,7 +181,7 @@ export class EstoqueService {
   });
 
   // ─── Distribuição por empresa (donut) — mesmo dado, outra visão ──
-  readonly distribuicaoPorEmpresa = computed((): CategoriaFatia[] => {
+  readonly distribuicaoPorEmpresa = computed((): GrupoFatia[] => {
     const ranking = this.valorPorEmpresa();
     return ranking.slice(0, 8).map((item, i) => ({
       label: item.nome,
@@ -189,10 +193,13 @@ export class EstoqueService {
   // ─── Maiores produtos em valor de estoque (bar) ───────────────
   readonly maioresProdutos = computed((): RankingEstoqueItem[] => {
     const atual = this._itensFiltrados();
-    const total = atual.reduce((s, i) => s + i.valor_estoque_custo, 0);
+    const total = atual.reduce((s, i) => s + this._valorTotalItem(i), 0);
 
     const map = new Map<string, number>();
-    atual.forEach(i => map.set(i.produto_descricao, (map.get(i.produto_descricao) ?? 0) + i.valor_estoque_custo));
+    atual.forEach(i => map.set(
+      i.produto_descricao,
+      (map.get(i.produto_descricao) ?? 0) + this._valorTotalItem(i)
+    ));
 
     return Array.from(map.entries())
       .sort((a, b) => b[1] - a[1])
@@ -205,13 +212,16 @@ export class EstoqueService {
       }));
   });
 
-  // ─── Por categoria (donut) — Elétrica, Motor, ... ─────────────
-  readonly porCategoria = computed((): CategoriaFatia[] => {
+  // ─── Por Grupo (donut) — Elétrica, Motor, ... ─────────────
+  readonly porGrupo = computed((): GrupoFatia[] => {
     const atual = this._itensFiltrados();
-    const total = atual.reduce((s, i) => s + i.valor_estoque_custo, 0) || 1;
+    const total = atual.reduce((s, i) => s + this._valorTotalItem(i), 0) || 1;
 
     const map = new Map<string, number>();
-    atual.forEach(i => map.set(i.categoria, (map.get(i.categoria) ?? 0) + i.valor_estoque_custo));
+    atual.forEach(i => map.set(
+      i.grupo,
+      (map.get(i.grupo) ?? 0) + this._valorTotalItem(i)
+    ));
 
     return Array.from(map.entries())
       .sort((a, b) => b[1] - a[1])
@@ -278,10 +288,10 @@ export class EstoqueService {
   // ─── Actions ──────────────────────────────────────────────────
   setBusca(v: string) { this.busca.set(v); }
 
-  toggleCategoria(nome: string): void {
-    const nova = new Set(this.filtroCategorias());
+  toggleGrupo(nome: string): void {
+    const nova = new Set(this.filtroGrupo());
     nova.has(nome) ? nova.delete(nome) : nova.add(nome);
-    this.filtroCategorias.set(nova);
+    this.filtroGrupo.set(nova);
   }
 
   // ─── Filtro de cliente (id_pessoa) — mesma convenção do
@@ -302,13 +312,13 @@ export class EstoqueService {
     }
   }
 
-  toggleTodasCategorias(): void {
-    const atual  = this.filtroCategorias();
-    const opcoes = this.opcoesCategoria();
+  toggleTodasGrupo(): void {
+    const atual  = this.filtroGrupo();
+    const opcoes = this.opcoesGrupo();
     if (atual.size > 0 && atual.size === opcoes.length) {
-      this.filtroCategorias.set(new Set());
+      this.filtroGrupo.set(new Set());
     } else {
-      this.filtroCategorias.set(new Set(opcoes));
+      this.filtroGrupo.set(new Set(opcoes));
     }
   }
 }

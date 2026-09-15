@@ -123,7 +123,7 @@ export interface UsuarioEmpresasResponse {
 
 export type RecursoSistema =
   | 'inadimplencia'           | 'dre'                     | 'pmp'             |   'pmr'
-  | 'aging'                   | 'cobrancas'               | 'receber'
+  | 'aging'                   | 'cobrancas'               | 'receber'         |   'frota'
   | 'pagar'                   | 'fluxo_caixa'             | 'usuarios'
   | 'permissoes'              | 'relatorios'              | 'aging_report'
   | 'credito'                 | 'estoque_movimentacao'    | 'chamados_geral'  ;

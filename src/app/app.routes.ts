@@ -15,6 +15,14 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'telemetria',
+    canActivate: [authGuard],
+    loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),
+    children: [
+      { path: 'frota',           canActivate: [permissaoGuard('frota')],           loadComponent: () => import('./pages/econnect/telemetria/frota').then(m => m.TelemetriaFrotaComponent) },
+    ],
+  },  
+  {
     path: 'financeiro',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell').then(m => m.ShellComponent),

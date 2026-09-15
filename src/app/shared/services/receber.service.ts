@@ -113,11 +113,12 @@ export class ReceberService {
       return status === 'todos' ? base : base.filter(c => c.status_financeiro === status);
     });
 
+    // ─── Realização: agora baseada em valor_pago (não mais em data_baixa) ─
     private _foiRealizado(item: TaxaApiItem): boolean {
-      return !!item.data_baixa;
+      return item.valor_pago != null && item.valor_pago !== 0;
     }
     private _valorRealizado(item: TaxaApiItem): number {
-      return this._foiRealizado(item) ? item.valor_total : 0;
+      return this._foiRealizado(item) ? (item.valor_pago as number) : 0;
     }
 
     readonly opcoesPessoa = computed((): FiltroOpcao[] => {
@@ -228,7 +229,9 @@ export class ReceberService {
 
       setGranularidadeRecebimento(v: 'dia' | 'mes'): void { this.granularidadeGraficoRecebimento.set(v); }
 
-      // Sem label/formatador aqui — isso agora é responsabilidade da Serie
+      // Esperado é agrupado pela data de vencimento.
+      // Realizado agora é agrupado pela data_movimentacao (data real do recebimento),
+      // e não mais pela data de vencimento nem por data_baixa.
       private _construirLinhas(
         lista: TaxaApiItem[],
         granularidade: 'dia' | 'mes',
@@ -244,12 +247,23 @@ export class ReceberService {
         const mapaRealizado = new Map<string, number>();
     
         lista.forEach(c => {
-          if (!c.data_vencimento) return;
-          const dt = this._parseDate(c.data_vencimento);
-          if (dt < dtInicio || dt > dtFim) return;
-          const chave = this._chaveData(c.data_vencimento, granularidade);
-          mapaEsperado.set(chave, (mapaEsperado.get(chave) ?? 0) + c.valor_total);
-          mapaRealizado.set(chave, (mapaRealizado.get(chave) ?? 0) + this._valorRealizado(c));
+          // Esperado: pela data de vencimento do título
+          if (c.data_vencimento) {
+            const dtVenc = this._parseDate(c.data_vencimento);
+            if (dtVenc >= dtInicio && dtVenc <= dtFim) {
+              const chaveVenc = this._chaveData(c.data_vencimento, granularidade);
+              mapaEsperado.set(chaveVenc, (mapaEsperado.get(chaveVenc) ?? 0) + c.valor_total);
+            }
+          }
+
+          // Realizado: pela data_movimentacao (data real em que o valor foi movimentado)
+          if (this._foiRealizado(c) && c.data_movimentacao) {
+            const dtMov = this._parseDate(c.data_movimentacao);
+            if (dtMov >= dtInicio && dtMov <= dtFim) {
+              const chaveMov = this._chaveData(c.data_movimentacao, granularidade);
+              mapaRealizado.set(chaveMov, (mapaRealizado.get(chaveMov) ?? 0) + this._valorRealizado(c));
+            }
+          }
         });
     
         const montarPontos = (mapa: Map<string, number>): PontoGrafico[] =>
@@ -294,6 +308,7 @@ export class ReceberService {
             statusFinanceiro: c.status_financeiro,
             dataVencimento: c.data_vencimento,
             dataBaixa: c.data_baixa,
+            dataMovimentacao: c.data_movimentacao,
     
             label: c.nome_pessoa,
     

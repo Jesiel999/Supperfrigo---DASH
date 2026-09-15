@@ -49,17 +49,17 @@ import { MultiSelectFilterComponent } from "../../../../shared/components/multi-
             (toggleId)="svc.togglePecas($event)"
             (toggleTodasEvt)="svc.toggleTodasPecas()"
           />
-          <div class="pecas-picker" role="tablist" aria-label="Categoria de peças">
-            @for (categoria of svc.opcoesCategoria(); track categoria) {
+          <div class="pecas-picker" role="tablist" aria-label="Grupo de peças">
+            @for (grupo of svc.opcoesGrupo(); track grupo) {
               <button
                 type="button"
                 role="tab"
                 class="btn-peca"
-                [class.btn-peca--ativo]="svc.filtroCategorias().has(categoria)"
-                [attr.aria-selected]="svc.filtroCategorias().has(categoria)"
-                (click)="svc.toggleCategoria(categoria)"
+                [class.btn-peca--ativo]="svc.filtroGrupo().has(grupo)"
+                [attr.aria-selected]="svc.filtroGrupo().has(grupo)"
+                (click)="svc.toggleGrupo(grupo)"
               >
-                {{ categoria }}
+                {{ grupo }}
               </button>
             }
           </div>
@@ -104,8 +104,7 @@ import { MultiSelectFilterComponent } from "../../../../shared/components/multi-
                                           @case ("Por Categoria") { 🔧 }
                                           @case ("Evolução Diária") { 📈 }
                                           @case ("Última Atualização") { 🔄 }
-                                          @default { ℹ️ }
-
+                                          @default { ℹ️ }    
                                       }
                                   </div>
                                   <div>
@@ -230,12 +229,12 @@ import { MultiSelectFilterComponent } from "../../../../shared/components/multi-
         <div class="card donut-card">
           <div class="card-header">
             <div>
-              <h2 class="card-title">Por Categoria</h2>
+              <h2 class="card-title">Por Grupo</h2>
               <p class="card-sub">Elétrica, Motor e demais</p>
             </div>
           </div>
           <app-donut-chart
-            [faixas]="svc.porCategoria()"
+            [faixas]="svc.porGrupo()"
             [totalClientes]="svc.kpis().qtdItens"
           />
         </div>

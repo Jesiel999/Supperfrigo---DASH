@@ -15,6 +15,8 @@ export interface TaxaApiItem {
   ordem?: number;
   descricao_forma_cobranca?: string;
   origem?: string;
+  valor_pago?: number | null;
+  data_movimentacao?: string | null;
   ultima_atualizacao: string | null;
 }
 
@@ -49,6 +51,7 @@ export interface AgrupamentoTaxaPorCliente {
 
   dataVencimento?: string;
   dataBaixa?: string | null;
+  dataMovimentacao?: string | null;
 
   label: string;
 
@@ -72,6 +75,7 @@ export interface AgrupamentoTaxaPorFornecedor {
 
   dataVencimento?: string;
   dataBaixa?: string | null;
+  dataMovimentacao?: string | null;
 
   label: string;
 

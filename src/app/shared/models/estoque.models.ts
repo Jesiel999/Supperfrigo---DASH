@@ -43,7 +43,7 @@ export interface RankingEstoqueItem {
   diasAtrasoMedio: number;
 }
 
-export interface CategoriaFatia {
+export interface GrupoFatia {
   label: string;
   percentual: number;
   cor: string;
