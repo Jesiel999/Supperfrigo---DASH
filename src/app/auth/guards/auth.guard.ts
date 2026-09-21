@@ -12,23 +12,6 @@ export const authGuard: CanActivateFn = () => {
   return false;
 };
 
-// ── Guard de admin (perfil contém 'admin') 
-export const adminSancesGuard: CanActivateFn = () => {
-  const auth   = inject(AuthService);
-  const router = inject(Router);
-  if (auth.logado()) return true;
-  router.navigate(['/sances']);
-  return false;
-};
-
-export const adminSultsGuard: CanActivateFn = () => {
-  const auth   = inject(AuthService);
-  const router = inject(Router);
-  if (auth.logado()) return true;
-  router.navigate(['/sults']);
-  return false;
-};
-
 // ── Factory: guard para recurso específico 
 // Uso: canActivate: [authGuard]
 export function permissaoGuard(

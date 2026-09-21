@@ -65,6 +65,11 @@ export const routes: Routes = [
     children: [
       { path: 'usuarios',    canActivate: [permissaoGuard('usuarios')],    loadComponent: () => import('./pages/admin/usuarios/usuarios').then(m => m.AdminUsuariosComponent) },
       { path: 'permissoes',  canActivate: [permissaoGuard('permissoes')],  loadComponent: () => import('./pages/admin/permissoes/permissoes').then(m => m.AdminPermissoesComponent) },
+      { path: 'equipamentos',      canActivate: [permissaoGuard('equipamentos')],      loadComponent: () => import('./pages/admin/gestao/equipamentos').then(m => m.AdminAtivosComponent) },
+      { path: 'chips',       canActivate: [permissaoGuard('chips')],       loadComponent: () => import('./pages/admin/gestao/chips').then(m => m.ChipComponent) },
+      { path: 'cadastroAuxiliares',       canActivate: [permissaoGuard('cadastroAuxiliares')],  loadComponent: () => import('./pages/admin/cadastros/cadastroAuxiliares').then(m => m.CadastrosAuxiliaresComponent) },
+      { path: 'colaboradores',            canActivate: [permissaoGuard('colaboradores')],       loadComponent: () => import('./pages/admin/gestao/colaboradores').then(m => m.ColaboradorComponent) },
+      { path: 'cadastroEmpresa',          canActivate: [permissaoGuard('cadastroEmpresa')],     loadComponent: () => import('./pages/admin/cadastros/cadastroEmpresa').then(m => m.EmpresaCadastroComponent) },
       { path: '', redirectTo: 'usuarios', pathMatch: 'full' },
     ],
   },

@@ -122,11 +122,11 @@ export interface UsuarioEmpresasResponse {
 }
 
 export type RecursoSistema =
-  | 'inadimplencia'           | 'dre'                     | 'pmp'             |   'pmr'
-  | 'aging'                   | 'cobrancas'               | 'receber'         |   'frota'
-  | 'pagar'                   | 'fluxo_caixa'             | 'usuarios'
-  | 'permissoes'              | 'relatorios'              | 'aging_report'
-  | 'credito'                 | 'estoque_movimentacao'    | 'chamados_geral'  ;
+  | 'inadimplencia'           | 'dre'                     |   'pmp'             |   'pmr'                   |   'colaboradores'
+  | 'aging'                   | 'cobrancas'               |   'receber'         |   'frota'                 |   'cadastroEmpresa'
+  | 'pagar'                   | 'fluxo_caixa'             |   'usuarios'        |   'equipamentos'          |   'cadastroSimples'
+  | 'permissoes'              | 'relatorios'              |   'aging_report'    |   'chips'
+  | 'credito'                 | 'estoque_movimentacao'    |   'chamados_geral'  |   'cadastroAuxiliares';
 
 // ─── Nav
 export interface NavItem    { label: string; icon: string; route: string; badge?: number; permissao?: RecursoSistema; }
