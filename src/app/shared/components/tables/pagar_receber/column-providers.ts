@@ -1,7 +1,7 @@
 import { ColDef } from 'ag-grid-community';
 import { TableColumnProvider } from '../table-column-provider';
 import { CellFormatters } from '../cell-formatters';
-import { TaxaApiItem } from '../../../models/taxa.models';
+import { TaxaApiItem } from '../../../models/financeiro/taxa.models';
 import { DashboardColors } from '../../../config/dashboard-colors';
 
 export class TaxaRecebimentoColumnProvider implements TableColumnProvider<TaxaApiItem> {
@@ -10,21 +10,21 @@ export class TaxaRecebimentoColumnProvider implements TableColumnProvider<TaxaAp
       { field: 'codigo', headerName: 'Código', width: 110, pinned: 'left' },
       { field: 'nome_empresa', headerName: 'Empresa', width: 150, pinned: 'left' },
       {
-        field: 'nome_pessoa', headerName: 'Cliente', width: 200, pinned: 'left',
+        field: 'nome_pessoa', headerName: 'Cliente', width: 400, pinned: 'left',
         cellRenderer: CellFormatters.nomeDestaqueCellRenderer<TaxaApiItem>(),
       },
-      { field: 'numero_documento', headerName: 'Documento', width: 140 },
+      { field: 'numero_documento', headerName: 'Documento', width: 170 },
       {
         field: 'valor_total', headerName: 'Valor', width: 150, type: 'numericColumn',
         valueFormatter: CellFormatters.currencyValueFormatter<TaxaApiItem>(),
         cellStyle: CellFormatters.currencyCellStyle(DashboardColors.receber.valor),
       },
       {
-        field: 'data_vencimento', headerName: 'Vencimento', width: 120, sort: 'asc',
+        field: 'data_vencimento', headerName: 'Vencimento', width: 200, sort: 'asc',
         valueFormatter: CellFormatters.dataValueFormatter<TaxaApiItem>(),
       },
       {
-        field: 'data_baixa', headerName: 'Recebido em', width: 130,
+        field: 'data_baixa', headerName: 'Recebido em', width: 200,
         valueFormatter: CellFormatters.dataValueFormatter<TaxaApiItem>(),
       },
       {

@@ -3,7 +3,7 @@ import { ApiService } from '../api.service';
 import {
   PessoaApiItem,
   PessoaPayload,
-} from '../../models/cadastros.models';
+} from '../../models/admin/cadastros.models';
 
 @Injectable({ providedIn: 'root' })
 export class ColaboradorService {

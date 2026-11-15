@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EmpresaCadastroService } from '../../../shared/services/admin/cadastroEmpresa.service';
-import { EmpresaApiItem } from '../../../shared/models/cadastros.models';
+import { EmpresaApiItem } from '../../../shared/models/admin/cadastros.models';
 
 // Ajuste os caminhos de import acima conforme a pasta real do projeto.
 

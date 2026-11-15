@@ -1,7 +1,7 @@
 import { Component, Input, OnChanges, SimpleChanges, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CadastroSimplesService, RecursoCadastroSimples } from '../../../shared/services/admin/cadastroSimples.service';
-import { DropdownItem } from '../../../shared/models/equipamentos.models';
+import { DropdownItem } from '../../../shared/models/admin/equipamentos.models';
 
 @Component({
   selector: 'app-cadastro-simples',

@@ -2,8 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChipService } from '../../../shared/services/admin/chip.service';
 import { EquipamentoService } from '../../../shared/services/admin/equipamentos.service';
-import { ChipApiItem, ChipPayload } from '../../../shared/models/cadastros.models';
-import { DropdownItem, MovimentacaoItem } from '../../../shared/models/equipamentos.models';
+import { ChipApiItem, ChipPayload } from '../../../shared/models/admin/cadastros.models';
+import { DropdownItem, MovimentacaoItem } from '../../../shared/models/admin/equipamentos.models';
 
 const FORM_VAZIO: ChipPayload = {
   id_empresa: 0,
@@ -72,7 +72,7 @@ const FORM_VAZIO: ChipPayload = {
               } @else {
                 @for (chip of svc.chips(); track chip.id) {
                   <tr>
-                    <td class="cell-nome">{{ chip.numero || '-' }}</td>
+                    <td class="cell-nome">{{ formatarTelefone(chip.numero) || '-' }}</td>
                     <td class="cell-data">{{ chip.iccid || '-' }}</td>
                     <td>{{ chip.nome_empresa ?? '-' }}</td>
                     <td>
@@ -155,7 +155,7 @@ const FORM_VAZIO: ChipPayload = {
       <div class="modal-backdrop" (click)="fecharVinculo()">
         <div class="modal modal-pequeno" (click)="$event.stopPropagation()">
           <div class="modal-header">
-            <h2>Vincular chip "{{ chip.numero }}"</h2>
+            <h2>Vincular chip "{{ formatarTelefone(chip.numero) }}"</h2>
             <button class="close-btn" (click)="fecharVinculo()">✕</button>
           </div>
           <div class="modal-body">
@@ -187,7 +187,7 @@ const FORM_VAZIO: ChipPayload = {
       <div class="modal-backdrop" (click)="fecharHistorico()">
         <div class="modal modal-pequeno" (click)="$event.stopPropagation()">
           <div class="modal-header">
-            <h2>Histórico — {{ chip.numero }}</h2>
+            <h2>Histórico — {{ formatarTelefone(chip.numero) }}</h2>
             <button class="close-btn" (click)="fecharHistorico()">✕</button>
           </div>
           <div class="modal-body">
@@ -317,7 +317,20 @@ export class ChipComponent implements OnInit {
   setCampo<K extends keyof ChipPayload>(campo: K, valor: ChipPayload[K]): void {
     this.form.set({ ...this.form(), [campo]: valor });
   }
+
   toNumOuNull(v: string): number | null { return v === '' ? null : +v; }
+
+    formatarTelefone(numero: string | null | undefined): string {
+    if (!numero) return '-';
+
+    const digits = numero.replace(/\D/g, '');
+
+    if (digits.length !== 11) {
+      return numero;
+    }
+
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
+  }
 
   abrirCriacao(): void {
     this.modoEdicao.set(false);

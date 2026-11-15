@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { MenuResponse } from '../../shared/models/usuario.models';
+import { MenuResponse } from '../models/admin/usuario.models';
 
 @Injectable({ providedIn: 'root' })
 export class MenuService {

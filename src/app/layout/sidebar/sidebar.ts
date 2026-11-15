@@ -1,6 +1,6 @@
 import { Component, input, output, inject, signal, computed } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { Usuario } from '../../shared/models/usuario.models';
+import { Usuario } from '../../shared/models/admin/usuario.models';
 import { AuthService } from '../../auth/services/auth.service';
 import { MenuStateService } from '../../shared/services/menu-state.service';
 
@@ -9,9 +9,11 @@ import { MenuStateService } from '../../shared/services/menu-state.service';
   imports: [RouterLink, RouterLinkActive],
   template: `
     <aside class="sidebar" [class.open]="open()">
-      <div class="logo">
-        <span class="logo-text">Coruja</span>
-        <button class="close-btn" (click)="fechar.emit()">✕</button>
+      <div class="logo" >
+        <a class="logo-link" routerLink="/home">
+          <span class="logo-text">Coruja</span>
+          <button class="close-btn" (click)="fechar.emit()">✕</button>
+        </a>
       </div>
 
       <nav class="nav-scroll">
@@ -79,7 +81,8 @@ import { MenuStateService } from '../../shared/services/menu-state.service';
       .sidebar-overlay { display:block; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:199; }
     }
 
-    .logo { padding:18px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-shrink:0; }
+    .logo { padding:18px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-shrink:0;}
+    .logo-link { text-decoration: none;}
     .logo-text  { font-family:'Syne',sans-serif;font-weight:800;font-size:16px;letter-spacing:-.5px;flex:1; }
     .logo-text em { color:#f43f5e;font-style:normal; }
 

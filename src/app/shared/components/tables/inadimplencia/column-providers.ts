@@ -1,7 +1,7 @@
 import { ColDef } from 'ag-grid-community';
 import { TableColumnProvider } from '../table-column-provider';
 import { CellFormatters } from '../cell-formatters';
-import { Pessoa } from '../../../models/financeiro.models';
+import { Pessoa } from '../../../models/financeiro/financeiro.models';
 import { DashboardColors } from '../../../config/dashboard-colors';
 
 export class InadimplenciaColumnProvider implements TableColumnProvider<Pessoa> {

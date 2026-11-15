@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.suaempresa.com.br',
+  apiUrl: 'https://coruja.supperfrigo.com.br',
 };

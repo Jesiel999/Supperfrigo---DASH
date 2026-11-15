@@ -6,7 +6,7 @@ import {
   EquipamentoPayload,
   ResumoEquipamentos,
   DropdownItem,
-} from '../../models/equipamentos.models';
+} from '../../models/admin/equipamentos.models';
 
 @Injectable({ providedIn: 'root' })
 export class EquipamentoService {

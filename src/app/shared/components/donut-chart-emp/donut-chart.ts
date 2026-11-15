@@ -1,5 +1,5 @@
 import { Component, input, computed } from '@angular/core';
-import { FaixaAtraso } from '../../models/financeiro.models';
+import { FaixaAtraso } from '../../models/financeiro/financeiro.models';
 
 interface DonutSegment extends FaixaAtraso {
   dasharray: string;
@@ -25,12 +25,28 @@ interface DonutSegment extends FaixaAtraso {
                   transform="rotate(-90 60 60)"/>
         }
 
-        <text x="60" y="56" text-anchor="middle"
-              font-size="14" font-weight="700" fill="white" font-family="Syne">
+        <text
+          x="60"
+          y="56"
+          text-anchor="middle"
+          font-size="14"
+          font-weight="700"
+          font-family="Syne"
+          class="donut-value"
+        >
           {{ totalTitulos() }}
         </text>
-        <text x="60" y="68" text-anchor="middle"
-              font-size="8" fill="#64748b" font-family="Outfit">Total</text>
+
+        <text
+          x="60"
+          y="68"
+          text-anchor="middle"
+          font-size="8"
+          font-family="Outfit"
+          class="donut-label"
+        >
+          Total
+        </text>
       </svg>
 
       <div class="donut-legend">
@@ -49,6 +65,13 @@ interface DonutSegment extends FaixaAtraso {
   styles: [`
     .donut-wrap {
       display: flex; align-items: center; gap: 24px; padding: 8px 0;
+    }
+    .donut-value {
+      fill: var(--text-primary, #ffffff);
+    }
+
+    .donut-label {
+      fill: var(--text-secondary, #94a3b8);
     }
     .donut-svg { flex-shrink: 0; }
     .donut-legend { flex: 1; }

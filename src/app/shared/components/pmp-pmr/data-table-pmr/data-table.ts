@@ -10,7 +10,7 @@ import {
   AllCommunityModule,
 } from 'ag-grid-community';
 import { AgGridAngular } from 'ag-grid-angular';
-import { ListPmr } from '../../../models/financeiro.models';
+import { ListPmr } from '../../../models/financeiro/financeiro.models';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -44,7 +44,7 @@ function fmtData(valor: string | null | undefined): string {
     </div>
 
     <ag-grid-angular
-      class="ag-theme-alpine-dark ag-grid-inadimplencia"
+      class="ag-theme-alpine-dark ag-grid-table"
       [rowData]="List()"
       [columnDefs]="colunas"
       [defaultColDef]="defaultCol"
@@ -88,15 +88,8 @@ function fmtData(valor: string | null | undefined): string {
     .btn-export:hover { background: rgba(244,63,94,.22); }
 
     /* ── AG Grid tema dark ── */
-    .ag-grid-inadimplencia {
+    .ag-grid-table {
       width: 100%; height: 480px;
-      --ag-background-color: transparent;
-      --ag-header-background-color: rgba(255,255,255,0.03);
-      --ag-odd-row-background-color: rgba(255,255,255,0.01);
-      --ag-row-hover-color: rgba(255,255,255,0.04);
-      --ag-border-color: rgba(255,255,255,0.06);
-      --ag-header-foreground-color: #64748b;
-      --ag-foreground-color: #e2e8f0;
       --ag-font-family: 'Outfit', sans-serif;
       --ag-font-size: 13px;
       --ag-selected-row-background-color: rgba(244,63,94,0.08);

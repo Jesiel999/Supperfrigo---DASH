@@ -9,7 +9,7 @@ import {
   RecursoSistema,
   TenantInfo,
   Usuario,
-} from '../../shared/models/usuario.models';
+} from '../../shared/models/admin/usuario.models';
 
 const TOKEN_KEY  = 'ff_token';
 const USER_KEY   = 'ff_usuario';

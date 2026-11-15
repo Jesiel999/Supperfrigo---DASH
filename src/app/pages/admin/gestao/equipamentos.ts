@@ -7,7 +7,7 @@ import {
   EquipamentoPayload,
   DropdownItem,
   MovimentacaoItem,
-} from '../../../shared/models/equipamentos.models';
+} from '../../../shared/models/admin/equipamentos.models';
 
 const FORM_VAZIO: EquipamentoPayload = {
   nome: '',

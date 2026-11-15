@@ -1,7 +1,7 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Perfil, Permissao, CreatePerfilRequest } from '../../../shared/models/usuario.models';
+import { Perfil, Permissao, CreatePerfilRequest } from '../../../shared/models/admin/usuario.models';
 import { PermissoesService } from '../../../shared/services/permissoes.service';
 
 interface NovoPerfilForm {

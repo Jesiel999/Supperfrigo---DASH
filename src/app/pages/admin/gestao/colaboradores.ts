@@ -1,8 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { ColaboradorService } from '../../../shared/services/admin/colaborador.service';
-import { PessoaApiItem } from '../../../shared/models/cadastros.models';
+import { PessoaApiItem } from '../../../shared/models/admin/cadastros.models';
 
 @Component({
   selector: 'app-colaboradores',
@@ -146,6 +146,37 @@ import { PessoaApiItem } from '../../../shared/models/cadastros.models';
       </div>
 
     </div>
+
+    <!-- Modal: marcar uma pessoa já existente (por CPF/CNPJ) como colaborador -->
+    @if (formAberto()) {
+      <div class="modal-backdrop" (click)="fecharForm()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h2>Adicionar Colaborador</h2>
+            <button class="close-btn" (click)="fecharForm()">✕</button>
+          </div>
+          <div class="modal-body">
+            <label class="form-field">
+              <span>CPF/CNPJ *</span>
+              <input
+                type="text"
+                placeholder="Digite o CPF ou CNPJ da pessoa"
+                [value]="cpfCnpj()"
+                (input)="cpfCnpj.set($any($event.target).value)"
+              />
+              <small>A pessoa precisa já existir na base (pessoa_bi). Este formulário só marca o CPF informado como colaborador — não cria uma pessoa nova.</small>
+            </label>
+            @if (erroForm()) { <p class="erro-form">{{ erroForm() }}</p> }
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secundario" (click)="fecharForm()">Cancelar</button>
+            <button class="btn-primario" (click)="salvarForm()" [disabled]="salvando()">
+              {{ salvando() ? 'Salvando...' : 'Salvar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 
   styles: [`
@@ -178,7 +209,7 @@ import { PessoaApiItem } from '../../../shared/models/cadastros.models';
     }
 
     .page-sub {
-      color: var(--muted);
+  
       font-size: 13px;
       margin-top: 5px;
       max-width: 560px;
@@ -237,7 +268,7 @@ import { PessoaApiItem } from '../../../shared/models/cadastros.models';
       padding: 12px;
       text-align: left;
       font-weight: 600;
-      color: var(--muted);
+  
       text-transform: uppercase;
       font-size: 10px;
       letter-spacing: .5px;
@@ -261,12 +292,12 @@ import { PessoaApiItem } from '../../../shared/models/cadastros.models';
     }
 
     .cell-data {
-      color: var(--muted);
+  
     }
 
     .cell-vazio {
       text-align: center;
-      color: var(--muted);
+  
       padding: 30px 0;
     }
 
@@ -301,7 +332,7 @@ import { PessoaApiItem } from '../../../shared/models/cadastros.models';
       gap: 16px;
       margin-top: 16px;
       font-size: 12.5px;
-      color: var(--muted);
+  
     }
 
     .btn-pag {
@@ -318,20 +349,78 @@ import { PessoaApiItem } from '../../../shared/models/cadastros.models';
       opacity: .4;
       cursor: not-allowed;
     }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.65); backdrop-filter: blur(8px);
+      display: flex; justify-content: center; align-items: center; z-index: 9999;
+    }
+    .modal {
+      width: 420px; max-width: 95vw; background: #141922; border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px; display: flex; flex-direction: column;
+    }
+    .modal-header { padding: 22px 26px; border-bottom: 1px solid rgba(255,255,255,.06); display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h2 { font-size: 18px; font-family: 'Syne'; margin: 0; }
+    .close-btn { width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(255,255,255,.06); color: white; cursor: pointer; }
+    .close-btn:hover { background: #f43f5e; }
+    .modal-body { padding: 22px 26px; display: flex; flex-direction: column; gap: 14px; }
+    .modal-footer { padding: 18px 26px; border-top: 1px solid rgba(255,255,255,.06); display: flex; justify-content: flex-end; gap: 10px; }
+    .btn-primario { background: #38BDF8; color: #0b1220; border: none; padding: 9px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .btn-primario:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-secundario { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 9px 20px; border-radius: 8px; cursor: pointer; }
+
+    .form-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--muted); }
+    .form-field input { background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; padding: 8px 10px; outline: none; }
+    .form-field small { font-size: 11px; color: var(--muted); }
+    .erro-form { color: #f43f5e; font-size: 12.5px; }
   `],
 })
 export class ColaboradorComponent implements OnInit {
 
   protected readonly svc = inject(ColaboradorService);
 
+  protected readonly formAberto = signal(false);
+  protected readonly cpfCnpj    = signal('');
+  protected readonly erroForm   = signal<string | null>(null);
+  protected readonly salvando   = signal(false);
+
   ngOnInit(): void {
     this.svc.carregar();
   }
 
   abrirAdicionar(): void {
-    console.log(
-      'Adicionar colaborador: selecionar uma pessoa existente.'
-    );
+    this.cpfCnpj.set('');
+    this.erroForm.set(null);
+    this.formAberto.set(true);
+  }
+
+  fecharForm(): void {
+    this.formAberto.set(false);
+  }
+
+  salvarForm(): void {
+    const cpf = this.cpfCnpj().trim();
+
+    if (!cpf) {
+      this.erroForm.set('Informe o CPF/CNPJ.');
+      return;
+    }
+
+    this.erroForm.set(null);
+    this.salvando.set(true);
+
+    this.svc.criar(cpf).subscribe({
+      next: () => {
+        this.salvando.set(false);
+        this.formAberto.set(false);
+        this.svc.carregar();
+      },
+      error: (err: any) => {
+        console.error('Erro ao adicionar colaborador:', err);
+        // 404 = nenhuma pessoa com esse CPF; 409 = já é colaborador (ver backend)
+        this.erroForm.set(err?.error?.detail ?? 'Não foi possível adicionar. Tente novamente.');
+        this.salvando.set(false);
+      },
+    });
   }
 
   excluir(pessoa: PessoaApiItem): void {

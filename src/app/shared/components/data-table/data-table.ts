@@ -38,7 +38,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
     </div>
 
     <ag-grid-angular
-      class="ag-theme-alpine-dark ag-grid-inadimplencia"
+      class="ag-theme-alpine-dark ag-grid-table"
       [rowData]="dados()"
       [columnDefs]="colunas()"
       [defaultColDef]="defaultCol"
@@ -99,7 +99,6 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
     .count {
       font-size: 11.5px;
-      color: var(--muted, #64748b);
       white-space: nowrap;
     }
 
@@ -121,23 +120,15 @@ ModuleRegistry.registerModules([AllCommunityModule]);
       background: rgba(244,63,94,.22);
     }
 
-    .ag-grid-inadimplencia {
+    .ag-grid-table {
       width: 100%;
       height: 480px;
-      --ag-background-color: #141922;
-      --ag-header-background-color: #1a202c;
-      --ag-odd-row-background-color: #171d27;
-      --ag-row-hover-color: #252d3a;
-      --ag-border-color: #374151;
-      --ag-header-foreground-color: #e2e8f0;
-      --ag-foreground-color: #e2e8f0;
       --ag-font-family: 'Outfit', sans-serif;
       --ag-font-size: 13px;
       --ag-selected-row-background-color: rgba(244,63,94,.08);
       --ag-row-border-color: #252d3a;
       --ag-cell-horizontal-padding: 14px;
       --ag-header-column-separator-display: none;
-      --ag-pagination-panel-color: #94a3b8;
       --ag-input-focus-border-color: #F2A93B;
     }
 
@@ -210,10 +201,6 @@ export class DataTableComponent<T = any> {
   onGridReady(e: GridReadyEvent<T>): void {
 
     this.gridApi = e.api;
-
-    setTimeout(() => {
-      this.gridApi.sizeColumnsToFit();
-    });
   }
 
   onBusca(valor: string): void {

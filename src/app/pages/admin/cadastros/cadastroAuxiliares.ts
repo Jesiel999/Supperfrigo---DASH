@@ -53,7 +53,7 @@ const ABAS: AbaCadastro[] = [
     .tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border); }
     .tab {
       background: transparent; border: none; border-bottom: 2px solid transparent;
-      color: var(--muted); font-size: 13.5px; font-weight: 500; padding: 10px 14px; cursor: pointer;
+   font-size: 13.5px; font-weight: 500; padding: 10px 14px; cursor: pointer;
     }
     .tab:hover { color: var(--text); }
     .tab.active { border-bottom-color: #38BDF8; color: #38BDF8; }

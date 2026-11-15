@@ -20,6 +20,18 @@ export const DashboardColors = {
     valor: '#38bdf8',
   },
 
+  fcp: {
+    valor_pagar: '#fb923c',
+    valor_receber: '#38bdf8',
+    pago: '#fb923c',
+    vencido: '#38bdf8',
+  },
+
+  dre: {
+    valor_pagar: '#fb923c',
+    valor_receber: '#38bdf8',
+  },
+
   estoque: {
     valor: '#38bdf8',
   },

@@ -1,5 +1,5 @@
 import { Component, input } from '@angular/core';
-import { MaioresDevedores } from '../../models/financeiro.models';
+import { MaioresDevedores } from '../../models/financeiro/financeiro.models';
 
 @Component({
   selector: 'app-top-devedores-bar',
@@ -68,24 +68,36 @@ import { MaioresDevedores } from '../../models/financeiro.models';
   `,
 
   styles: [`
+    :host {
+      display: block;
+      width: 100%;
+      min-width: 0;
+    }
+
     .bar-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
+      width: 100%;
+      min-width: 0;
       max-height: 350px;
       overflow-y: auto;
-      padding-right: 6px;
+      overflow-x: hidden;
+      padding: 4px 6px 4px 0;
+      box-sizing: border-box;
     }
 
     .bar-row {
       display: grid;
       grid-template-columns:
-        minmax(120px, 180px)
-        minmax(80px, 1fr)
-        minmax(120px, auto);
-
+        minmax(0, 30%)
+        minmax(40px, 1fr)
+        minmax(0, 20%);
       align-items: center;
       gap: 10px;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
 
     .bar-label {
@@ -96,33 +108,36 @@ import { MaioresDevedores } from '../../models/financeiro.models';
     }
 
     .rank {
+      flex: 0 0 22px;
+      width: 22px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
       color: var(--muted, #64748b);
-      flex-shrink: 0;
-      width: 22px;
     }
 
     .nome {
+      flex: 1;
+      min-width: 0;
       color: var(--text, #e2e8f0);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: 1.4;
     }
 
     .bar-track {
-      background: rgba(255,255,255,.06);
+      width: 100%;
+      min-width: 0;
+      height: 8px;
+      background: rgba(255, 255, 255, .06);
       border-radius: 4px;
-      height: 6px;
       overflow: hidden;
+      justify-self: stretch;
     }
 
     .bar-fill {
       height: 100%;
       border-radius: 4px;
-      transition:
-        width .4s ease,
-        background .3s ease;
+      transition: width .4s ease, background .3s ease;
     }
 
     .bar-values {
@@ -130,6 +145,8 @@ import { MaioresDevedores } from '../../models/financeiro.models';
       align-items: center;
       justify-content: flex-end;
       gap: 8px;
+      min-width: 0;
+      width: 100%;
     }
 
     .valor {
@@ -139,22 +156,21 @@ import { MaioresDevedores } from '../../models/financeiro.models';
       white-space: nowrap;
     }
 
-    .qtd {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      color: var(--muted, #64748b);
-      min-width: 42px;
-      text-align: right;
-      white-space: nowrap;
-    }
-
+    .qtd,
     .pct {
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
       color: var(--muted, #64748b);
-      min-width: 36px;
       text-align: right;
       white-space: nowrap;
+    }
+
+    .qtd {
+      min-width: 42px;
+    }
+
+    .pct {
+      min-width: 36px;
     }
 
     .empty {
@@ -162,6 +178,81 @@ import { MaioresDevedores } from '../../models/financeiro.models';
       color: var(--muted, #64748b);
       font-size: 12px;
       padding: 20px 0;
+    }
+
+    /* Tablets e telas médias */
+    @media (max-width: 900px) {
+      .bar-row {
+        grid-template-columns:
+          minmax(0, 32%)
+          minmax(40px, 1fr)
+          minmax(0, 25%);
+        gap: 8px;
+      }
+
+      .bar-values {
+        gap: 5px;
+      }
+    }
+
+    /* Celulares */
+    @media (max-width: 600px) {
+      .bar-list {
+        gap: 14px;
+        padding-right: 4px;
+      }
+
+      .bar-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px 10px;
+      }
+
+      .bar-label {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .bar-values {
+        grid-column: 2;
+        grid-row: 1;
+        width: auto;
+        gap: 6px;
+      }
+
+      .bar-track {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        height: 12px;
+      }
+
+      .nome {
+        font-size: 12px;
+      }
+
+      .valor {
+        font-size: 10px;
+      }
+
+      .qtd,
+      .pct {
+        font-size: 9px;
+        min-width: 0;
+      }
+    }
+
+    /* Celulares estreitos */
+    @media (max-width: 380px) {
+      .bar-row {
+        gap: 6px;
+      }
+
+      .bar-values {
+        gap: 4px;
+      }
+
+      .qtd {
+        display: none;
+      }
     }
   `],
 })

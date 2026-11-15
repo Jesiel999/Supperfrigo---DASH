@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { EmpresaFilterService } from './empresa-filter.service';
 import { ApiService } from './api.service';
 import { BehaviorSubject } from 'rxjs';
-import { Permissao, PermissaoRecurso, PermissoesResponse, Perfil, CreatePerfilRequest, UpdatePerfilRequest } from '../models/usuario.models';
+import { Permissao, PermissaoRecurso, PermissoesResponse, Perfil, CreatePerfilRequest, UpdatePerfilRequest } from '../models/admin/usuario.models';
 
 
 @Injectable({

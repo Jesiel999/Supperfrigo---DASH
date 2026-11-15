@@ -7,7 +7,7 @@ import {
   CreateUsuarioRequest,
   UpdateUsuarioRequest,
   UsuarioEmpresasResponse
-} from '../models/usuario.models';
+} from '../models/admin/usuario.models';
 
 @Injectable({ providedIn: 'root' })
 export class UsuariosService {

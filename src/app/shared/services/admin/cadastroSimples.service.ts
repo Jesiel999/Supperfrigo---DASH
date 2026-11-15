@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiService } from '../api.service';
-import { DropdownItem } from '../../models/equipamentos.models';
+import { DropdownItem } from '../../models/admin/equipamentos.models';
 
 export type RecursoCadastroSimples = 'marcas' | 'modelos' | 'toners' | 'departamentos';
 

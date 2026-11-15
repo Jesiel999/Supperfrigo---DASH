@@ -1,7 +1,7 @@
 import { ColDef } from 'ag-grid-community';
 import { TableColumnProvider } from '../../table-column-provider';
 import { CellFormatters } from '../../cell-formatters';
-import { ItemEstoque } from '../../../../models/estoque.models';
+import { ItemEstoque } from '../../../../models/estoque/estoque.models';
 import { DashboardColors } from '../../../../config/dashboard-colors';
 
 export class EstoqueColumnProvider implements TableColumnProvider<ItemEstoque> {

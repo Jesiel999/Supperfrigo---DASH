@@ -25,19 +25,29 @@
             "polyfills": [],
             "tsConfig": "tsconfig.app.json",
             "assets": [
-                {
-                  "glob": "**/*",
-                  "input": "public"
-                }
-              ],
-            "styles": ["src/styles.scss"],
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "src/styles.scss"
+            ],
             "scripts": []
           },
           "configurations": {
             "production": {
               "budgets": [
-                { "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" },
-                { "type": "anyComponentStyle", "maximumWarning": "8kB", "maximumError": "12kB" }
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "16kB",
+                  "maximumError": "18kB"
+                }
               ],
               "outputHashing": "all"
             },
@@ -52,12 +62,24 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {
-            "production": { "buildTarget": "Coruja:build:production" },
-            "development": { "buildTarget": "Coruja:build:development" }
+            "production": {
+              "buildTarget": "Coruja:build:production"
+            },
+            "development": {
+              "buildTarget": "Coruja:build:development"
+            }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "allowedHosts": [
+              "coruja.supperfrigo.com.br"
+            ]
+          }
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "3119c48a-b09f-41c2-819c-ec85a6943bc4"
   }
 }

@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import {
   UsuarioAdmin, CreateUsuarioRequest, UpdateUsuarioRequest, Empresas
-} from '../../../shared/models/usuario.models';
+} from '../../../shared/models/admin/usuario.models';
 import { UsuariosService } from '../../../shared/services/usuarios.service';
 import { PermissoesService } from '../../../shared/services/permissoes.service';
 import { EmpresasService } from '../../../shared/services/empresas.service';

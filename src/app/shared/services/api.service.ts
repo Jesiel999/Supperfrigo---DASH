@@ -1,4 +1,6 @@
 import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { map } from 'rxjs/operators';
@@ -7,17 +9,18 @@ import {
   InadimplenciaApiItem,
   PmpApiItem,
   PmrApiItem,
-} from '../models/financeiro.models';
-import { EnvioCobrancaPayload, RespostaEnvio } from '../models/cobranca.models';
-import { TaxaApiItem } from '../models/taxa.models';
+} from '../models/financeiro/financeiro.models';
+import { EnvioCobrancaPayload, RespostaEnvio } from '../models/financeiro/cobranca.models';
+import { TaxaApiItem } from '../models/financeiro/taxa.models';
+import { FluxoCaixaItem, FluxoCaixaTitulo } from '../models/financeiro/fluxo_caixa.models';
 import {
   Usuario,
   Perfil,
   Permissao,
   CreateUsuarioRequest,
   UpdateUsuarioRequest,
-} from '../models/usuario.models'
-import { EstoqueApiItem } from '../models/estoque.models';
+} from '../models/admin/usuario.models'
+import { EstoqueApiItem } from '../models/estoque/estoque.models';
 import {
   EquipamentoApiItem,
   EquipamentoListaResponse,
@@ -25,7 +28,7 @@ import {
   MovimentacaoItem,
   ResumoEquipamentos,
   DropdownItem,
-} from '../models/equipamentos.models';
+} from '../models/admin/equipamentos.models';
 import {
   ChipApiItem,
   ChipPayload,
@@ -36,8 +39,16 @@ import {
   EmpresaListaResponse,
   PessoaPayload,
   PessoaListaResponse,
-} from '../models/cadastros.models';
- 
+} from '../models/admin/cadastros.models';
+import { DreItem, DreTitulo, DreDespesaMes } from '../models/financeiro/dre.models';
+import { FcpItem, FcpTitulo, FcpTituloTable } from '../models/financeiro/fcp.models';
+import { FiltroOpcao } from '../components/pessoa-filter/pessoa-filter';
+import { AvisoAdmin, StatusIntegracao, Aviso } from '../models/admin/home.models'
+import {
+  TermoModelo, EmpresaTermo, EmpresaTermoDados, GerarTermoPayload,
+  TermoEmitido, CamposTermoResponse,
+} from '../models/admin/termo.models';
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
@@ -301,6 +312,65 @@ export class ApiService {
       `${this.base}/financeiro/pmr`,
       { params }
     );
+  }
+
+  private _params(base: Record<string, string | boolean>, idPessoa = ''): Record<string, string | boolean> {
+    return idPessoa ? { ...base, id_pessoa: idPessoa } : base;
+  }
+
+  // ── DRE ──
+  getDre(inicio: string, fim: string, incluirAbertos = true, idPessoa = '') {
+    return this.http.get<ApiResponse<DreItem>>(`${this.base}/financeiro/dre`, {
+      params: this._params({ data_inicio: inicio, data_fim: fim, incluir_abertos: incluirAbertos }, idPessoa),
+    });
+  }
+  getDreTitulos(classificacao: string, inicio: string, fim: string, incluirAbertos = true, idPessoa = '') {
+    return this.http.get<ApiResponse<DreTitulo>>(`${this.base}/financeiro/dre/titulos`, {
+      params: this._params({ classificacao, data_inicio: inicio, data_fim: fim, incluir_abertos: incluirAbertos }, idPessoa),
+    });
+  }
+  getDreDespesasMensal(inicio: string, fim: string, incluirAbertos = true, idPessoa = '') {
+    return this.http.get<ApiResponse<DreDespesaMes>>(`${this.base}/financeiro/despesas-mensal`, {
+      params: this._params({ data_inicio: inicio, data_fim: fim, incluir_abertos: incluirAbertos }, idPessoa),
+    });
+  }
+
+  // ── FCP ──
+  getFcp(inicio: string, fim: string, idPessoa = '') {
+    return this.http.get<ApiResponse<FcpItem>>(`${this.base}/financeiro/fcp`, {
+      params: this._params({ data_inicio: inicio, data_fim: fim }, idPessoa),
+    });
+  }
+  getFcpTitulos(classificacao: string, inicio: string, fim: string, idPessoa = '') {
+    // ⚠️ caminho que o seu back-end expõe (você estava usando /financeiro/titulos)
+    return this.http.get<ApiResponse<FcpTitulo>>(`${this.base}/financeiro/fcp/titulos`, {
+      params: this._params({ classificacao, data_inicio: inicio, data_fim: fim }, idPessoa),
+    });
+  }
+  getFcpPagar(inicio: string, fim: string, idPessoa = '') {
+    return this.http.get<ApiResponse<FcpTituloTable>>(`${this.base}/financeiro/fcp/pagar`, {
+      params: this._params({ data_inicio: inicio, data_fim: fim }, idPessoa),
+    });
+  }
+
+  // ── FLUXO DE CAIXA ──
+  getFluxoCaixa(inicio: string, fim: string) {
+    return this.http.get<ApiResponse<FluxoCaixaItem>>(`${this.base}/financeiro/fluxo-caixa`, {
+      params: { data_inicio: inicio, data_fim: fim },
+    });
+  }
+  getFluxoCaixaTitulos(classificacao: string, inicio: string, fim: string) {
+    return this.http.get<ApiResponse<FluxoCaixaTitulo>>(`${this.base}/financeiro/fluxo-caixa/titulos`, {
+      params: { classificacao, data_inicio: inicio, data_fim: fim },
+    });
+  }
+ 
+
+  // ── Filtro de pessoas ──
+  getPessoasFiltro(inicio: string, fim: string) {
+      return this.http.get<ApiResponse<FiltroOpcao>>(`${this.base}/financeiro/pessoas`, {
+        params: { data_inicio: inicio, data_fim: fim },
+    });
   }
 
   enviarCobranca(payload: EnvioCobrancaPayload) {
@@ -585,4 +655,96 @@ export class ApiService {
       `${this.base}/api/pessoas/${id}`
     );
   }
+
+  
+  // ─── Avisos (cadastro) ──────────────────────────────────────────────────
+
+  getAvisos() {
+    return this.http.get<ApiResponse<Aviso>>(`${this.base}/home/avisos`);
+  }
+  getStatusIntegracoes() {
+    return this.http.get<ApiResponse<StatusIntegracao>>(`${this.base}/home/integracoes`);
+  }
+  
+  // administração de avisos
+  getAvisosAdmin() {
+    return this.http.get<ApiResponse<AvisoAdmin>>(`${this.base}/home/admin/avisos`);
+  }
+  salvarAviso(a: AvisoAdmin) {
+    const corpo = { titulo: a.titulo, tag: a.tag, publicar_de: a.publicar_de, publicar_ate: a.publicar_ate, ativo: a.ativo };
+    return a.id
+      ? this.http.put(`${this.base}/home/admin/avisos/${a.id}`, corpo)
+      : this.http.post(`${this.base}/home/admin/avisos`, corpo);
+  }
+  excluirAviso(id: number) {
+    return this.http.delete(`${this.base}/home/admin/avisos/${id}`);
+  }
+
+  // ─── TERMOS DE RESPONSABILIDADE ──────────────────────────────────────────
+
+  getTermoModelos(incluirInativos = false) {
+    return this.http.get<TermoModelo[]>(`${this.base}/api/termos/modelos`, {
+      params: { incluir_inativos: String(incluirInativos) },
+    });
+  }
+
+  getTermoCampos() {
+    return this.http.get<CamposTermoResponse>(`${this.base}/api/termos/campos`);
+  }
+
+  baixarTermoModelo(id: number) {
+    return this.http.get(`${this.base}/api/termos/modelos/${id}/download`, { responseType: 'blob' });
+  }
+
+  criarTermoModelo(slug: string, nome: string, descricao: string, arquivo: File) {
+    const fd = new FormData();
+    fd.append('slug', slug);
+    fd.append('nome', nome);
+    if (descricao) fd.append('descricao', descricao);
+    fd.append('arquivo', arquivo);
+    return this.http.post<TermoModelo>(`${this.base}/api/termos/modelos`, fd);
+  }
+
+  substituirTermoModelo(id: number, arquivo: File) {
+    const fd = new FormData();
+    fd.append('arquivo', arquivo);
+    return this.http.put<TermoModelo>(`${this.base}/api/termos/modelos/${id}/arquivo`, fd);
+  }
+
+  desativarTermoModelo(id: number) {
+    return this.http.delete<void>(`${this.base}/api/termos/modelos/${id}`);
+  }
+
+  getEmpresaTermo(codigo: number) {
+    return this.http.get<EmpresaTermo>(`${this.base}/api/termos/empresas/${codigo}`);
+  }
+
+  salvarEmpresaTermo(codigo: number, dados: EmpresaTermoDados) {
+    return this.http.put<EmpresaTermo>(`${this.base}/api/termos/empresas/${codigo}`, dados);
+  }
+
+  gerarTermo(payload: GerarTermoPayload) {
+    return this.http.post(`${this.base}/api/termos/gerar`, payload, { responseType: 'blob' });
+  }
+
+  getTermosEmitidos(colaborador?: number) {
+    const params: Record<string, string> = { limit: '100' };
+    if (colaborador != null) params['colaborador'] = String(colaborador);
+    return this.http.get<TermoEmitido[]>(`${this.base}/api/termos/emitidos`, { params });
+  }
+
+  baixarTermoEmitido(id: number) {
+    return this.http.get(`${this.base}/api/termos/emitidos/${id}/download`, { responseType: 'blob' });
+  }
+
+  subirTermoAssinado(id: number, arquivo: File) {
+    const fd = new FormData();
+    fd.append('arquivo', arquivo);
+    return this.http.post<void>(`${this.base}/api/termos/emitidos/${id}/assinado`, fd);
+  }
+
+  baixarTermoAssinado(id: number) {
+    return this.http.get(`${this.base}/api/termos/emitidos/${id}/assinado`, { responseType: 'blob' });
+  }
+ 
 }

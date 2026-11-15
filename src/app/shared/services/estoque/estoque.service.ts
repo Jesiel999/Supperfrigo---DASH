@@ -9,7 +9,7 @@ import {
   KpiEstoque,
   RankingEstoqueItem,
   GrupoFatia,
-} from '../../models/estoque.models';
+} from '../../models/estoque/estoque.models';
 import { FiltroOpcao } from '../../components/multi-select-filter/pessoa_filter';
 
 const PALETA_CATEGORIAS = [

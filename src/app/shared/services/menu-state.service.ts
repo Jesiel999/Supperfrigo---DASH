@@ -1,7 +1,7 @@
 import { Injectable, signal, effect, inject } from '@angular/core';
 import { AuthService } from '../../auth/services/auth.service';
 import { MenuService } from '../services/menu.service';
-import { SistemaMenu } from '../models/usuario.models';
+import { SistemaMenu } from '../models/admin/usuario.models';
 
 @Injectable({ providedIn: 'root' })
 export class MenuStateService {

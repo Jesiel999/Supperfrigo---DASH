@@ -9,7 +9,7 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../../auth/services/auth.service';
 import { EmpresaFilterService } from '../../shared/services/empresa-filter.service';
 import { MenuStateService } from '../../shared/services/menu-state.service';
-import { AplicacaoMenu } from '../../shared/models/usuario.models';
+import { AplicacaoMenu } from '../../shared/models/admin/usuario.models';
 
 @Component({
   selector: 'app-topbar',
@@ -35,7 +35,7 @@ import { AplicacaoMenu } from '../../shared/models/usuario.models';
 
     .tab {
       padding: 6px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 500;
-      color: var(--muted); text-decoration: none; transition: all .18s;
+   text-decoration: none; transition: all .18s;
       white-space: nowrap; display: flex; align-items: center; gap: 5px; flex-shrink: 0;
       position: relative;
     }

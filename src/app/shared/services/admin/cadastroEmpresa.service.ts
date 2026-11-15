@@ -1,6 +1,6 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { ApiService } from '../api.service';
-import { EmpresaApiItem, EmpresaCreatePayload, EmpresaUpdatePayload } from '../../models/cadastros.models';
+import { EmpresaApiItem, EmpresaCreatePayload, EmpresaUpdatePayload } from '../../models/admin/cadastros.models';
 
 @Injectable({ providedIn: 'root' })
 export class EmpresaCadastroService {

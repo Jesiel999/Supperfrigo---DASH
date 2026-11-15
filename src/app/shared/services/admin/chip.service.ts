@@ -1,6 +1,6 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { ApiService } from '../api.service';
-import { ChipApiItem, ChipPayload } from '../../models/cadastros.models';
+import { ChipApiItem, ChipPayload } from '../../models/admin/cadastros.models';
 
 @Injectable({ providedIn: 'root' })
 export class ChipService {

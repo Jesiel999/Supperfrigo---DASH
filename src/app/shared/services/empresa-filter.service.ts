@@ -1,6 +1,6 @@
 import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { AuthService } from '../../auth/services/auth.service';
-import { EmpresaAutorizada } from '../models/usuario.models';
+import { EmpresaAutorizada } from '../models/admin/usuario.models';
 import { EmpresasService } from './empresas.service';
 
 const STORAGE_KEY = 'ff_empresas_selecionadas';

@@ -50,7 +50,7 @@ export class CellFormatters {
   }
 
   static nomeDestaqueCellRenderer<T>(): (p: ICellRendererParams<T, string>) => string {
-    return (p) => `<span style="font-weight:500;color:#e2e8f0">${p.value ?? ''}</span>`;
+    return (p) => `<span style="font-weight:500;">${p.value ?? ''}</span>`;
   }
 
   static numberValueFormatter<T>(): ValueFormatterFunc<T> {

@@ -34,7 +34,7 @@ import { MenuStateService } from '../../shared/services/menu-state.service';
 
     .tab {
       padding: 6px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 500;
-      color: var(--muted); text-decoration: none; transition: all .18s;
+   text-decoration: none; transition: all .18s;
       white-space: nowrap; display: flex; align-items: center; gap: 5px; flex-shrink: 0;
       position: relative;
     }
